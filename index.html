@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Certificados</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #f5f7fa;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+
+    .container {
+      width: 100%;
+      height: 100vh;
+      background: white;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: #1a3c6e;
+      color: white;
+      padding: 18px 24px;
+      border-bottom: 1px solid #0f2a52;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .file-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 6px 12px;
+    }
+
+    .file-group label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      white-space: nowrap;
+    }
+
+    .file-status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      white-space: nowrap;
+    }
+
+    .file-status.ok {
+      background: rgba(40, 167, 69, 0.6);
+    }
+
+    input[type=file] {
+      padding: 6px 10px;
+      border: none;
+      background: transparent;
+      color: white;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    input[type=file]::file-selector-button {
+      background: white;
+      color: #1a3c6e;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-right: 6px;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    input[type=file]::file-selector-button:hover {
+      background: rgba(255,255,255,0.95);
+    }
+
+    button {
+      background: white;
+      color: #1a3c6e;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    button:hover {
+      background: rgba(255,255,255,0.95);
+    }
+
+    .content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 280px;
+      background: #f9fafb;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px 18px;
+      background: #f3f4f6;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+
+    .alumnos-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .alumnos-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .alumnos-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .alumnos-list::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+
+    .alumno-item {
+      padding: 12px 15px;
+      margin-bottom: 8px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 4px solid transparent;
+    }
+
+    .alumno-item:hover {
+      background: #f0f7ff;
+      border-left-color: #667eea;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+    }
+
+    .alumno-item.active {
+      background: #e8f0ff;
+      border-left-color: #667eea;
+      font-weight: 600;
+    }
+
+    .alumno-nombre {
+      font-weight: 600;
+      color: #333;
+      font-size: 13px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .alumno-rut {
+      font-size: 12px;
+      color: #999;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .preview-header {
+      padding: 20px 30px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .preview-header h3 {
+      color: #333;
+      font-size: 16px;
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-download {
+      background: #28a745;
+      color: white;
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+
+    .btn-download:hover {
+      background: #218838;
+    }
+
+    .preview-area {
+      flex: 1;
+      overflow: auto;
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #fafafa;
+    }
+
+    .preview-empty {
+      text-align: center;
+      color: #999;
+      font-size: 16px;
+    }
+
+    .certificado {
+      width: 900px;
+      height: 630px;
+      position: relative;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      border-radius: 8px;
+    }
+
+    .template-bg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      inset: 0;
+    }
+
+    .registro {
+      position: absolute;
+      top: 59px;
+      left: 180px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #1d2430;
+      z-index: 2;
+      letter-spacing: 0.5px;
+    }
+
+    .nombre {
+      position: absolute;
+      top: 265px;
+      width: 100%;
+      text-align: center;
+      font-size: 30px;
+      color: #1f252e;
+      z-index: 2;
+      padding: 0 75px;
+    }
+
+    .rut {
+      position: absolute;
+      top: 305px;
+      width: 100%;
+      text-align: center;
+      font-size: 32px;
+      color: #123d73;
+      z-index: 2;
+    }
+
+    .curso {
+      position: absolute;
+      top: 390px;
+      width: 100%;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: #1d2430;
+      z-index: 2;
+      padding: 0 110px;
+      line-height: 1.2;
+    }
+
+    .fechaInicio {
+      position: absolute;
+      bottom: 182px;
+      left: 272px;
+      font-size: 10px;
+      color: #1d2430;
+      z-index: 2;
+    }
+
+    .fechaTermino {
+      position: absolute;
+      bottom: 161px;
+      left: 290px;
+      font-size: 10px;
+      color: #1d2430;
+      z-index: 2;
+    }
+
+    .duracion {
+      position: absolute;
+      bottom: 182px;
+      right: 295px;
+      font-size: 10px;
+      color: #1d2430;
+      z-index: 2;
+    }
+
+    .modalidad {
+      position: absolute;
+      bottom: 158px;
+      right: 280px;
+      font-size: 10px;
+      color: #1d2430;
+      z-index: 2;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .info-panel {
+      background: white;
+      padding: 20px;
+      border-top: 1px solid #e0e0e0;
+      display: none;
+    }
+
+    .info-panel.visible {
+      display: block;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 13px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: #666;
+    }
+
+    .info-value {
+      color: #333;
+    }
+
+    @media (max-width: 1024px) {
+      .content {
+        flex-direction: column;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: 200px;
+        border-right: none;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      .alumnos-list {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 10px;
+      }
+
+      .alumno-item {
+        flex: 0 0 auto;
+        min-width: 180px;
+      }
+
+      .certificado {
+        width: 100%;
+        height: auto;
+        max-width: 600px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Sistema de Certificados Masivos</h1>
+      <div class="topbar">
+        <!-- Carga del template -->
+        <div class="file-group">
+          <label>Template:</label>
+          <input type="file" id="templateFile" accept=".png,.jpg,.jpeg" onchange="cargarTemplate(this)">
+          <span class="file-status" id="templateStatus">Sin cargar</span>
+        </div>
+<!-- Prefijo de registro -->
+        <div class="file-group">
+          <label>Prefijo registro:</label>
+          <input type="text" id="prefijoRegistro" placeholder="Ej: TTEQ" maxlength="20"
+            style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);
+                   color:white;padding:8px 10px;border-radius:6px;width:110px;font-size:13px;
+                   outline:none;"
+            oninput="actualizarRegistros()">
+        </div>
+        <!-- Carga del Excel -->
+        <div class="file-group">
+          <label>Excel:</label>
+          <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+          <button onclick="procesarExcel()">Cargar</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="sidebar">
+        <div class="sidebar-header">ALUMNOS CARGADOS</div>
+        <div class="alumnos-list" id="alumnosList"></div>
+      </div>
+
+      <div class="main-content">
+        <div class="preview-header">
+          <h3>Vista Previa del Certificado</h3>
+          <div class="preview-actions">
+            <button class="btn-download" id="btnDescargar" onclick="generarPDFActual()" style="display:none;">Descargar PDF</button>
+          </div>
+        </div>
+
+        <div class="preview-area">
+          <div id="previewContainer">
+            <div class="preview-empty">Carga el template y un archivo Excel para ver los certificados aquí</div>
+          </div>
+        </div>
+
+        <div class="info-panel" id="infoPanel">
+          <div class="info-row">
+            <span class="info-label">Nombre:</span>
+            <span class="info-value" id="infNombre">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">RUT:</span>
+            <span class="info-value" id="infRut">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Curso:</span>
+            <span class="info-value" id="infCurso">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Duración:</span>
+            <span class="info-value" id="infDuracion">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Modalidad:</span>
+            <span class="info-value" id="infModalidad">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Certificado oculto (para preview) -->
+  <div class="certificado hidden" id="certificado">
+    <img id="templateBg" class="template-bg" src="">
+    <div class="registro" id="certRegistro">CBA01</div>
+    <div class="nombre" id="certNombre">NOMBRE COMPLETO</div>
+    <div class="rut" id="certRut">00.000.000-0</div>
+    <div class="curso" id="certCurso">CURSO</div>
+    <div class="fechaInicio" id="certInicio">FECHA INICIO</div>
+    <div class="fechaTermino" id="certTermino">FECHA TÉRMINO</div>
+    <div class="duracion" id="certDuracion">DURACIÓN</div>
+    <div class="modalidad" id="certModalidad">MODALIDAD</div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
