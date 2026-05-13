@@ -6,6 +6,7 @@ let alumnoActual = null;
 let templateBase64 = null; // Almacena la imagen como base64
 let alumnosFiltrados = []; // Almacena los alumnos filtrados por búsqueda
 let panelInfoExpanded = true; // Estado del panel de información
+let _pendingContinuarCarga = null; // Callback pendiente tras modal
 
 // ─── CARGA DEL TEMPLATE ───────────────────────────────────────────────────────
 function cargarTemplate(input) {
@@ -55,6 +56,9 @@ function procesarExcel() {
       // Limpiar datos previos
       alumnosPorPagina = {};
       paginasNombres = [];
+
+      // ── Registros con datos faltantes (para el modal) ──────────────────────
+      const registrosIncompletos = [];
       
       // Procesar todas las hojas
       workbook.SheetNames.forEach((sheetName) => {
@@ -73,24 +77,48 @@ function procesarExcel() {
           }
         }
 
+        // ── Detectar filas con datos faltantes ANTES de filtrar ───────────────
+        rawData.slice(inicioAlumnos).forEach((row, relIndex) => {
+          const filaExcel = inicioAlumnos + relIndex + 1; // 1-based para el usuario
+          const tieneAlgo = row[1] || row[2] || row[3];
+          if (!tieneAlgo) return; // fila completamente vacía, ignorar
+
+          const faltantes = [];
+          if (!row[1]) faltantes.push('Nombres');
+          if (!row[2]) faltantes.push('Apellidos');
+          if (!row[3]) faltantes.push('RUT');
+
+          if (faltantes.length > 0) {
+            registrosIncompletos.push({
+              hoja: sheetName,
+              filaExcel,
+              nombres:   row[1] || '—',
+              apellidos: row[2] || '—',
+              rut:       row[3] || '—',
+              faltantes
+            });
+          }
+        });
+
+        // ── Solo incluir filas completas en la lista de alumnos ───────────────
         const alumnosHoja = rawData
           .slice(inicioAlumnos)
           .filter(row => row[1] && row[2] && row[3])
-          .map((row, index) => ({
-            registro: row[0],
-            nombres: row[1],
-            apellidos: row[2],
-            rut: row[3],
-            empresa: row[4],
-            cargo: row[5],
+          .map((row) => ({
+            registro:    row[0],
+            nombres:     row[1],
+            apellidos:   row[2],
+            rut:         row[3],
+            empresa:     row[4],
+            cargo:       row[5],
             escolaridad: row[6],
-            telefono: row[7],
-            correo: row[8],
-            curso: rawData[2][2],
-            duracion: rawData[3][2],
-            fechaInicio: rawData[5][2],
-            fechaTermino: rawData[6][2],
-            modalidad: rawData[7][2]
+            telefono:    row[7],
+            correo:      row[8],
+            curso:       rawData[2] && rawData[2][2],
+            duracion:    rawData[3] && rawData[3][2],
+            fechaInicio: rawData[5] && rawData[5][2],
+            fechaTermino:rawData[6] && rawData[6][2],
+            modalidad:   rawData[7] && rawData[7][2]
           }));
 
         if (alumnosHoja.length > 0) {
@@ -104,15 +132,79 @@ function procesarExcel() {
         return;
       }
 
-      // Mostrar la primera página
-      paginaActual = 0;
-      cambiarPagina(0);
+      // ── Si hay registros incompletos, mostrar modal antes de continuar ──────
+      const continuarCarga = () => {
+        paginaActual = 0;
+        cambiarPagina(0);
+      };
+
+      if (registrosIncompletos.length > 0) {
+        mostrarModalAdvertencia(registrosIncompletos, continuarCarga);
+      } else {
+        continuarCarga();
+      }
+
     } catch (error) {
       alert('Error al procesar el archivo: ' + error.message);
     }
   };
 
   reader.readAsArrayBuffer(file);
+}
+
+// ─── MODAL: MOSTRAR ADVERTENCIA DE DATOS FALTANTES ───────────────────────────
+function mostrarModalAdvertencia(registros, callbackContinuar) {
+  _pendingContinuarCarga = callbackContinuar;
+
+  // Resumen
+  const totalHojas = [...new Set(registros.map(r => r.hoja))].length;
+  document.getElementById('modalResumenTexto').innerHTML =
+    `Se encontraron <strong>${registros.length} registro(s)</strong> con datos críticos faltantes ` +
+    `en <strong>${totalHojas} hoja(s)</strong>. ` +
+    `Estos alumnos <strong>no aparecerán</strong> en la lista de cargados. ` +
+    `Revisa la tabla a continuación para identificar y corregir cada caso en tu archivo Excel.`;
+
+  // Tabla
+  const tbody = document.getElementById('modalTablaBody');
+  tbody.innerHTML = '';
+  registros.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const datosDisponibles = [
+      r.nombres !== '—' ? `Nombres: <em>${r.nombres}</em>` : null,
+      r.apellidos !== '—' ? `Apellidos: <em>${r.apellidos}</em>` : null,
+      r.rut !== '—' ? `RUT: <em>${r.rut}</em>` : null
+    ].filter(Boolean).join('<br>') || '<span style="color:#aaa">Sin datos identificables</span>';
+
+    const badgesFaltantes = r.faltantes
+      .map(f => `<span class="badge-faltante">✗ ${f}</span>`)
+      .join('');
+
+    tr.innerHTML = `
+      <td style="color:#aaa;font-size:12px">${i + 1}</td>
+      <td class="hoja-cell">📄 ${r.hoja}</td>
+      <td class="fila-cell">Fila ${r.filaExcel}</td>
+      <td style="font-size:12px;line-height:1.6">${datosDisponibles}</td>
+      <td>${badgesFaltantes}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Mostrar modal
+  document.getElementById('modalAdvertencia').classList.add('visible');
+}
+
+function cerrarModalIgnorar() {
+  document.getElementById('modalAdvertencia').classList.remove('visible');
+  if (_pendingContinuarCarga) {
+    _pendingContinuarCarga();
+    _pendingContinuarCarga = null;
+  }
+}
+
+function cerrarModalCorregir() {
+  document.getElementById('modalAdvertencia').classList.remove('visible');
+  _pendingContinuarCarga = null;
+  // No continúa la carga; el usuario va a corregir el archivo
 }
 
 
@@ -345,6 +437,38 @@ function actualizarRegistros() {
   cargarCertificado(alumnoActual, index >= 0 ? index : 0);
 }
 
+// ─── MODAL PROGRESO: ACTUALIZAR UI ────────────────────────────────────────────
+function actualizarModalProgreso(procesados, total, nombreAlumno) {
+  const porcentaje = total > 0 ? Math.round((procesados / total) * 100) : 0;
+  document.getElementById('progresoActual').innerText  = procesados;
+  document.getElementById('progresoTotal').innerText   = total;
+  document.getElementById('progresoFill').style.width  = porcentaje + '%';
+  document.getElementById('statCompletados').innerText = procesados;
+  document.getElementById('statRestantes').innerText   = total - procesados;
+  document.getElementById('statPorcentaje').innerText  = porcentaje + '%';
+  if (nombreAlumno) {
+    document.getElementById('progresoAlumnoActual').innerHTML =
+      `<span class="progreso-spinner"></span> Procesando: ${nombreAlumno}`;
+  }
+}
+
+function abrirModalProgreso(nombrePagina, total) {
+  document.getElementById('progresoNombrePagina').innerText = 'Hoja: ' + nombrePagina;
+  document.getElementById('progresoActual').innerText  = '0';
+  document.getElementById('progresoTotal').innerText   = total;
+  document.getElementById('progresoFill').style.width  = '0%';
+  document.getElementById('statCompletados').innerText = '0';
+  document.getElementById('statRestantes').innerText   = total;
+  document.getElementById('statPorcentaje').innerText  = '0%';
+  document.getElementById('progresoAlumnoActual').innerHTML =
+    '<span class="progreso-spinner"></span> Iniciando proceso...';
+  document.getElementById('modalProgreso').classList.add('visible');
+}
+
+function cerrarModalProgreso() {
+  document.getElementById('modalProgreso').classList.remove('visible');
+}
+
 // ─── DESCARGAR TODOS LOS CERTIFICADOS EN ZIP ──────────────────────────────────
 async function descargarTodosCertificados() {
   if (!alumnos || alumnos.length === 0) {
@@ -361,9 +485,15 @@ async function descargarTodosCertificados() {
   btnDescargarTodos.disabled = true;
   btnDescargarTodos.innerText = 'Generando...';
 
+  const nombrePagina = paginasNombres[paginaActual] || 'pagina';
+  abrirModalProgreso(nombrePagina, alumnos.length);
+
+  // Dar un frame para que el modal se pinte antes de iniciar el procesamiento
+  await new Promise(r => setTimeout(r, 80));
+
   try {
     if (!window.jspdf || !window.jspdf.jsPDF) {
-      throw new Error('jsPDF no está disponible. Recarga la página.');
+      throw new Error('jsPDF no esta disponible. Recarga la pagina.');
     }
 
     const JSZip = window.JSZip;
@@ -373,7 +503,13 @@ async function descargarTodosCertificados() {
     // Generar PDF para cada alumno
     for (let index = 0; index < alumnos.length; index++) {
       const alumno = alumnos[index];
-      
+      const nombreCompleto = `${alumno.nombres || ''} ${alumno.apellidos || ''}`.trim();
+
+      // Actualizar modal antes de procesar este alumno
+      actualizarModalProgreso(index, alumnos.length, nombreCompleto || `Alumno ${index + 1}`);
+      // Ceder control al navegador para que se actualice la UI
+      await new Promise(r => setTimeout(r, 0));
+
       // Crear canvas
       const canvas = document.createElement('canvas');
       canvas.width = 1448;
@@ -393,7 +529,7 @@ async function descargarTodosCertificados() {
       ctx.drawImage(img, 0, 0, 1448, 1024);
 
       // Preparar datos del alumno
-      const nombreCompleto = `${alumno.nombres || ''} ${alumno.apellidos || ''}`.toUpperCase();
+      const nombreMayus = nombreCompleto.toUpperCase();
       const numRegistro = index + 1;
       const codigoRegistro = prefijo ? `${prefijo}${numRegistro}` : `${numRegistro}`;
 
@@ -410,7 +546,7 @@ async function descargarTodosCertificados() {
       ctx.fillStyle = '#1f252e';
       ctx.font = `${Math.round(30 * scaleX)}px Arial`;
       ctx.textAlign = 'center';
-      ctx.fillText(nombreCompleto, 724, Math.round(280 * scaleY + 30));
+      ctx.fillText(nombreMayus, 724, Math.round(280 * scaleY + 30));
 
       // RUT
       ctx.fillStyle = '#123d73';
@@ -425,29 +561,25 @@ async function descargarTodosCertificados() {
       wrapText(ctx, (alumno.curso || '').toUpperCase(), 724, Math.round(410 * scaleY), Math.round(780 * scaleX), Math.round(38 * scaleY));
 
       // FECHAS Y DATOS
-      const inicio = (alumno.fechaInicio || '').toUpperCase();
-      const termino = (alumno.fechaTermino || '').toUpperCase();
-      const duracion = (alumno.duracion || '').toUpperCase();
-      const modalidad = (alumno.modalidad || '').toUpperCase();
+      const inicio   = (alumno.fechaInicio  || '').toUpperCase();
+      const termino  = (alumno.fechaTermino || '').toUpperCase();
+      const duracion = (alumno.duracion     || '').toUpperCase();
+      const modalidad= (alumno.modalidad    || '').toUpperCase();
 
       ctx.fillStyle = '#1d2430';
       ctx.font = `${Math.round(10 * scaleX)}px Arial`;
 
-      // FECHA INICIO
       ctx.textAlign = 'left';
-      const yInicio = 1024 - Math.round(185 * scaleY);
-      ctx.fillText(inicio, Math.round(272 * scaleX), yInicio);
+      const yInicio  = 1024 - Math.round(185 * scaleY);
+      ctx.fillText(inicio,  Math.round(272 * scaleX), yInicio);
 
-      // FECHA TÉRMINO
       const yTermino = 1024 - Math.round(165 * scaleY);
       ctx.fillText(termino, Math.round(290 * scaleX), yTermino);
 
-      // DURACIÓN
       ctx.textAlign = 'right';
       const xDuracion = 1448 - Math.round(295 * scaleX);
       ctx.fillText(duracion, xDuracion, yInicio);
 
-      // MODALIDAD
       const yModalidad = 1024 - Math.round(161 * scaleY);
       const xModalidad = 1448 - Math.round(280 * scaleX);
       ctx.fillText(modalidad, xModalidad, yModalidad);
@@ -467,30 +599,28 @@ async function descargarTodosCertificados() {
         ? `${alumno.nombres}-${alumno.apellidos}`
         : `alumno-${numRegistro}`;
 
-      // Agregar PDF al ZIP
       const pdfData = pdf.output('arraybuffer');
       zip.file(`${nombreArchivo.replace(/\s+/g, '-')}.pdf`, pdfData);
-
-      // Actualizar el botón cada 5 alumnos
-      if ((index + 1) % 5 === 0 || index === alumnos.length - 1) {
-        btnDescargarTodos.innerText = `Procesando ${index + 1}/${alumnos.length}...`;
-      }
     }
 
-    // Generar el ZIP
-    btnDescargarTodos.innerText = 'Comprimiendo...';
+    // Mostrar estado de compresion en el modal
+    actualizarModalProgreso(alumnos.length, alumnos.length, null);
+    document.getElementById('progresoAlumnoActual').innerHTML =
+      '<span class="progreso-spinner"></span> Comprimiendo archivos ZIP...';
+    await new Promise(r => setTimeout(r, 0));
+
     const zipData = await zip.generateAsync({ type: 'blob' });
 
-    // Descargar el ZIP con nombre que incluya la página
-    const nombrePagina = paginasNombres[paginaActual] || 'pagina';
     const nombreArchivo = `certificados-${nombrePagina.replace(/\s+/g, '-')}.zip`;
     saveAs(zipData, nombreArchivo);
 
+    cerrarModalProgreso();
     btnDescargarTodos.disabled = false;
     btnDescargarTodos.innerText = 'Descargar Todos';
 
   } catch (error) {
     console.error('Error completo:', error);
+    cerrarModalProgreso();
     alert('Error al generar certificados: ' + (error.message || 'Error desconocido'));
     btnDescargarTodos.disabled = false;
     btnDescargarTodos.innerText = 'Descargar Todos';

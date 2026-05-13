@@ -552,6 +552,373 @@
       opacity: 0;
     }
 
+    /* ─── MODAL DE ADVERTENCIA DE DATOS FALTANTES ─────────────────────────── */
+    #modalAdvertencia {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(3px);
+    }
+
+    #modalAdvertencia.visible {
+      display: flex;
+    }
+
+    .modal-box {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 700px;
+      max-width: 95vw;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalEntrada 0.25s ease;
+    }
+
+    @keyframes modalEntrada {
+      from { transform: translateY(-20px); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+
+    .modal-header {
+      background: #c0392b;
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-header-icon {
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+
+    /* ─── MODAL DE PROGRESO DE DESCARGA ───────────────────────────────────── */
+    #modalProgreso {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(4px);
+    }
+
+    #modalProgreso.visible {
+      display: flex;
+    }
+
+    .modal-progreso-box {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      width: 520px;
+      max-width: 95vw;
+      overflow: hidden;
+      animation: modalEntrada 0.25s ease;
+    }
+
+    .modal-progreso-header {
+      background: #1a3c6e;
+      color: white;
+      padding: 20px 26px;
+    }
+
+    .modal-progreso-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .modal-progreso-header p {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .modal-progreso-body {
+      padding: 28px 26px 24px;
+    }
+
+    .progreso-nombre-pagina {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a3c6e;
+      margin-bottom: 18px;
+      padding: 10px 14px;
+      background: #f0f4ff;
+      border-left: 4px solid #1a3c6e;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .progreso-contador-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 10px;
+    }
+
+    .progreso-label {
+      font-size: 12px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .progreso-numeros {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a3c6e;
+      line-height: 1;
+    }
+
+    .progreso-numeros span {
+      font-size: 13px;
+      font-weight: 500;
+      color: #999;
+    }
+
+    .barra-progreso-fondo {
+      width: 100%;
+      height: 12px;
+      background: #e9ecef;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .barra-progreso-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #1a3c6e, #3a7bd5);
+      border-radius: 6px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progreso-estadisticas {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .stat-card-valor {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a3c6e;
+      margin-bottom: 3px;
+    }
+
+    .stat-card-label {
+      font-size: 11px;
+      color: #888;
+      font-weight: 500;
+    }
+
+    .stat-card.completados .stat-card-valor { color: #28a745; }
+    .stat-card.restantes .stat-card-valor   { color: #e67e22; }
+
+    .progreso-alumno-actual {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: 18px;
+    }
+
+    .progreso-spinner {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border: 2px solid #ccc;
+      border-top-color: #1a3c6e;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .modal-progreso-footer {
+      padding: 14px 26px;
+      background: #f8f9fa;
+      border-top: 1px solid #e9ecef;
+      font-size: 12px;
+      color: #aaa;
+      text-align: center;
+    }
+
+    .modal-header-text h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .modal-header-text p {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    .modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-resumen {
+      background: #fff8e1;
+      border: 1px solid #f9ca24;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #7d6608;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .modal-resumen span:first-child {
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .modal-tabla-wrapper {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .modal-tabla {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .modal-tabla thead tr {
+      background: #1a3c6e;
+      color: white;
+    }
+
+    .modal-tabla thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.4px;
+    }
+
+    .modal-tabla tbody tr {
+      border-bottom: 1px solid #f0f0f0;
+      transition: background 0.15s;
+    }
+
+    .modal-tabla tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .modal-tabla tbody tr:hover {
+      background: #f8faff;
+    }
+
+    .modal-tabla tbody td {
+      padding: 9px 14px;
+      color: #333;
+      vertical-align: middle;
+    }
+
+    .modal-tabla td.hoja-cell {
+      font-weight: 600;
+      color: #1a3c6e;
+    }
+
+    .modal-tabla td.fila-cell {
+      font-family: monospace;
+      color: #555;
+    }
+
+    .badge-faltante {
+      display: inline-block;
+      background: #fdecea;
+      color: #c0392b;
+      border: 1px solid #e74c3c;
+      border-radius: 12px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      margin: 2px 3px 2px 0;
+      white-space: nowrap;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      background: #f8f9fa;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-footer-note {
+      font-size: 12px;
+      color: #888;
+      flex: 1;
+    }
+
+    .btn-modal-ignorar {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-modal-ignorar:hover {
+      background: #5a6268;
+    }
+
+    .btn-modal-corregir {
+      background: #1a3c6e;
+      color: white;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-modal-corregir:hover {
+      background: #0f2a52;
+    }
+
     @media (max-width: 1024px) {
       .content {
         flex-direction: column;
@@ -690,6 +1057,91 @@
     <div class="fechaTermino" id="certTermino">FECHA TÉRMINO</div>
     <div class="duracion" id="certDuracion">DURACIÓN</div>
     <div class="modalidad" id="certModalidad">MODALIDAD</div>
+  </div>
+
+  <!-- ─── MODAL ADVERTENCIA DATOS FALTANTES ─────────────────────────────── -->
+  <div id="modalAdvertencia">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-header-icon"></div>
+        <div class="modal-header-text">
+          <h2>Advertencia: Datos incompletos detectados</h2>
+          <p>Algunos alumnos tienen campos críticos vacíos y podrían no aparecer correctamente en la lista.</p>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-resumen" id="modalResumen">
+          <span></span>
+          <span id="modalResumenTexto"></span>
+        </div>
+        <div class="modal-tabla-wrapper">
+          <table class="modal-tabla">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Hoja / Pestaña</th>
+                <th>Fila en Excel</th>
+                <th>Datos disponibles</th>
+                <th>Campos faltantes</th>
+              </tr>
+            </thead>
+            <tbody id="modalTablaBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span class="modal-footer-note">Puedes corregir el archivo Excel y volver a cargarlo, o continuar de todas formas sin los registros afectados.</span>
+        <button class="btn-modal-ignorar" onclick="cerrarModalIgnorar()">Ignorar y continuar</button>
+        <button class="btn-modal-corregir" onclick="cerrarModalCorregir()">Cerrar y corregir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL PROGRESO DE DESCARGA ──────────────────────────────────────── -->
+  <div id="modalProgreso">
+    <div class="modal-progreso-box">
+      <div class="modal-progreso-header">
+        <h2>Generando certificados</h2>
+        <p>No cierres ni recargues la pagina mientras se procesa la descarga.</p>
+      </div>
+      <div class="modal-progreso-body">
+        <div class="progreso-nombre-pagina" id="progresoNombrePagina">Hoja: —</div>
+
+        <div class="progreso-contador-wrap">
+          <span class="progreso-label">Certificados procesados</span>
+          <div class="progreso-numeros">
+            <span id="progresoActual">0</span>
+            <span>/ <span id="progresoTotal">0</span></span>
+          </div>
+        </div>
+
+        <div class="barra-progreso-fondo">
+          <div class="barra-progreso-fill" id="progresoFill"></div>
+        </div>
+
+        <div class="progreso-estadisticas">
+          <div class="stat-card completados">
+            <div class="stat-card-valor" id="statCompletados">0</div>
+            <div class="stat-card-label">Completados</div>
+          </div>
+          <div class="stat-card restantes">
+            <div class="stat-card-valor" id="statRestantes">0</div>
+            <div class="stat-card-label">Restantes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-valor" id="statPorcentaje">0%</div>
+            <div class="stat-card-label">Avance</div>
+          </div>
+        </div>
+
+        <div class="progreso-alumno-actual" id="progresoAlumnoActual">
+          <span class="progreso-spinner"></span> Iniciando proceso...
+        </div>
+      </div>
+      <div class="modal-progreso-footer">
+        Por favor espera. La descarga del archivo ZIP comenzara automaticamente al finalizar.
+      </div>
+    </div>
   </div>
 
   <script src="script.js"></script>
