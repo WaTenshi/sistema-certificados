@@ -5,6 +5,7 @@ let alumnos = []; // Alumnos de la página actual
 let alumnoActual = null;
 let templateBase64 = null; // Almacena la imagen como base64
 let alumnosFiltrados = []; // Almacena los alumnos filtrados por búsqueda
+let panelInfoExpanded = true; // Estado del panel de información
 
 // ─── CARGA DEL TEMPLATE ───────────────────────────────────────────────────────
 function cargarTemplate(input) {
@@ -529,6 +530,7 @@ function resetearSistema() {
   alumnosPorPagina = {};
   paginasNombres = [];
   paginaActual = 0;
+  panelInfoExpanded = true; // Resetear estado del panel
 
   // Limpiar inputs
   document.getElementById('excelFile').value = '';
@@ -552,6 +554,12 @@ function resetearSistema() {
 
   // Ocultar panel de información
   document.getElementById('infoPanel').classList.remove('visible');
+
+  // Expandir el panel de información
+  const infoContent = document.getElementById('infoContent');
+  const toggleBtn = document.getElementById('toggleBtn');
+  infoContent.classList.remove('collapsed');
+  toggleBtn.classList.remove('collapsed');
 
   // Limpiar campos de información
   document.getElementById('infNombre').innerText = '-';
@@ -614,4 +622,20 @@ function actualizarBotonesNavegacion() {
   btnNext.disabled = paginaActual === paginasNombres.length - 1;
   
   pageInfo.innerText = `Página ${paginaActual + 1} de ${paginasNombres.length}`;
+}
+
+// ─── TOGGLE PANEL DE INFORMACIÓN ──────────────────────────────────────────────
+function togglePanelInfo() {
+  const infoContent = document.getElementById('infoContent');
+  const toggleBtn = document.getElementById('toggleBtn');
+  
+  panelInfoExpanded = !panelInfoExpanded;
+  
+  if (panelInfoExpanded) {
+    infoContent.classList.remove('collapsed');
+    toggleBtn.classList.remove('collapsed');
+  } else {
+    infoContent.classList.add('collapsed');
+    toggleBtn.classList.add('collapsed');
+  }
 }

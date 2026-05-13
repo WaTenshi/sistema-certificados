@@ -504,6 +504,54 @@
       color: #333;
     }
 
+    .info-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 12px;
+      user-select: none;
+    }
+
+    .info-panel-header h4 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .toggle-btn {
+      background: none;
+      border: none;
+      color: #667eea;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s ease;
+    }
+
+    .toggle-btn.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .info-content {
+      max-height: 500px;
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      opacity: 1;
+    }
+
+    .info-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+
     @media (max-width: 1024px) {
       .content {
         flex-direction: column;
@@ -600,25 +648,31 @@
         </div>
 
         <div class="info-panel" id="infoPanel">
-          <div class="info-row">
-            <span class="info-label">Nombre:</span>
-            <span class="info-value" id="infNombre">-</span>
+          <div class="info-panel-header" onclick="togglePanelInfo()">
+            <h4>Información del Alumno</h4>
+            <button class="toggle-btn" id="toggleBtn" title="Expandir/Contraer">▼</button>
           </div>
-          <div class="info-row">
-            <span class="info-label">RUT:</span>
-            <span class="info-value" id="infRut">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Curso:</span>
-            <span class="info-value" id="infCurso">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Duración:</span>
-            <span class="info-value" id="infDuracion">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Modalidad:</span>
-            <span class="info-value" id="infModalidad">-</span>
+          <div class="info-content" id="infoContent">
+            <div class="info-row">
+              <span class="info-label">Nombre:</span>
+              <span class="info-value" id="infNombre">-</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">RUT:</span>
+              <span class="info-value" id="infRut">-</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Curso:</span>
+              <span class="info-value" id="infCurso">-</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Duración:</span>
+              <span class="info-value" id="infDuracion">-</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Modalidad:</span>
+              <span class="info-value" id="infModalidad">-</span>
+            </div>
           </div>
         </div>
       </div>
