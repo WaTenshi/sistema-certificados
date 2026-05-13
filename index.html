@@ -7,6 +7,8 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
   <style>
     * {
@@ -176,6 +178,9 @@
       cursor: pointer;
       transition: all 0.2s;
       border-left: 4px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .alumno-item:hover {
@@ -188,6 +193,30 @@
       background: #e8f0ff;
       border-left-color: #667eea;
       font-weight: 600;
+    }
+
+    .alumno-numero {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: #f0f0f0;
+      border-radius: 50%;
+      font-weight: 600;
+      color: #667eea;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .alumno-item.active .alumno-numero {
+      background: #667eea;
+      color: white;
+    }
+
+    .alumno-info {
+      flex: 1;
+      min-width: 0;
     }
 
     .alumno-nombre {
@@ -240,6 +269,92 @@
 
     .btn-download:hover {
       background: #218838;
+    }
+
+    .btn-reset {
+      background: #dc3545;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      transition: all 0.2s;
+      height: 36px;
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-reset:hover {
+      background: #c82333;
+    }
+
+    .pages-navigation {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 15px;
+      background: #f3f4f6;
+      border-top: 1px solid #e5e7eb;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .pages-navigation button {
+      padding: 4px 10px;
+      min-width: 30px;
+      height: 28px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    .pages-navigation button:hover {
+      background: #f0f0f0;
+      border-color: #999;
+    }
+
+    .pages-navigation button.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .pages-navigation button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .page-info {
+      margin: 0 10px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .search-box {
+      padding: 12px 15px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 13px;
+      box-sizing: border-box;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
     }
 
     .preview-area {
@@ -447,14 +562,26 @@
           <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
           <button onclick="procesarExcel()">Cargar</button>
         </div>
+        <!-- Botón de reseteo -->
+        <div style="margin-left: auto;">
+          <button class="btn-reset" onclick="resetearSistema()" title="Limpiar todo e iniciar de nuevo">Limpiar Todo</button>
+        </div>
 
       </div>
     </div>
 
     <div class="content">
       <div class="sidebar">
-        <div class="sidebar-header">ALUMNOS CARGADOS</div>
+        <div class="sidebar-header" id="paginasHeader">ALUMNOS CARGADOS</div>
+        <div class="search-box">
+          <input type="text" id="buscarAlumnos" placeholder="Buscar por nombre o RUT..." onkeyup="filtrarAlumnos()">
+        </div>
         <div class="alumnos-list" id="alumnosList"></div>
+        <div class="pages-navigation" id="pagesNavigation" style="display:none;">
+          <button onclick="cambiarPagina(-1)" id="btnPrevPage">Anterior</button>
+          <span class="page-info" id="pageInfo"></span>
+          <button onclick="cambiarPagina(1)" id="btnNextPage">Siguiente</button>
+        </div>
       </div>
 
       <div class="main-content">
@@ -462,6 +589,7 @@
           <h3>Vista Previa del Certificado</h3>
           <div class="preview-actions">
             <button class="btn-download" id="btnDescargar" onclick="generarPDFActual()" style="display:none;">Descargar PDF</button>
+            <button class="btn-download" id="btnDescargarTodos" onclick="descargarTodosCertificados()" style="display:none; background: #1a3c6e;">Descargar Todos</button>
           </div>
         </div>
 

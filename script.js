@@ -1,6 +1,10 @@
-let alumnos = [];
+let alumnosPorPagina = {}; // { nombreHoja: [alumnos] }
+let paginasNombres = []; // Nombres de las hojas/páginas
+let paginaActual = 0; // Índice de la página actual
+let alumnos = []; // Alumnos de la página actual
 let alumnoActual = null;
 let templateBase64 = null; // Almacena la imagen como base64
+let alumnosFiltrados = []; // Almacena los alumnos filtrados por búsqueda
 
 // ─── CARGA DEL TEMPLATE ───────────────────────────────────────────────────────
 function cargarTemplate(input) {
@@ -46,37 +50,62 @@ function procesarExcel() {
     try {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      // Limpiar datos previos
+      alumnosPorPagina = {};
+      paginasNombres = [];
+      
+      // Procesar todas las hojas
+      workbook.SheetNames.forEach((sheetName) => {
+        const worksheet = workbook.Sheets[sheetName];
+        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-      alumnos = rawData
-        .slice(24)
-        .filter(row => row[1] && row[2] && row[3])
-        .map((row, index) => ({
-          registro: row[0],
-          nombres: row[1],
-          apellidos: row[2],
-          rut: row[3],
-          empresa: row[4],
-          cargo: row[5],
-          escolaridad: row[6],
-          telefono: row[7],
-          correo: row[8],
-          curso: rawData[2][2],
-          duracion: rawData[3][2],
-          fechaInicio: rawData[5][2],
-          fechaTermino: rawData[6][2],
-          modalidad: rawData[7][2]
-        }));
+        // Detectar automáticamente dónde comienzan los datos de alumnos
+        let inicioAlumnos = 0;
+        for (let i = 0; i < Math.min(30, rawData.length); i++) {
+          const row = rawData[i];
+          if (row && row.length > 3 && row[1] && row[2] && row[3]) {
+            if (typeof row[3] === 'string' && (row[3].includes('.') || row[3].includes('-'))) {
+              inicioAlumnos = i;
+              break;
+            }
+          }
+        }
 
-      if (alumnos.length === 0) {
+        const alumnosHoja = rawData
+          .slice(inicioAlumnos)
+          .filter(row => row[1] && row[2] && row[3])
+          .map((row, index) => ({
+            registro: row[0],
+            nombres: row[1],
+            apellidos: row[2],
+            rut: row[3],
+            empresa: row[4],
+            cargo: row[5],
+            escolaridad: row[6],
+            telefono: row[7],
+            correo: row[8],
+            curso: rawData[2][2],
+            duracion: rawData[3][2],
+            fechaInicio: rawData[5][2],
+            fechaTermino: rawData[6][2],
+            modalidad: rawData[7][2]
+          }));
+
+        if (alumnosHoja.length > 0) {
+          alumnosPorPagina[sheetName] = alumnosHoja;
+          paginasNombres.push(sheetName);
+        }
+      });
+
+      if (paginasNombres.length === 0) {
         alert('No se encontraron alumnos en el archivo');
         return;
       }
 
-      mostrarListaAlumnos(alumnos);
-      cargarCertificado(alumnos[0], 0);
+      // Mostrar la primera página
+      paginaActual = 0;
+      cambiarPagina(0);
     } catch (error) {
       alert('Error al procesar el archivo: ' + error.message);
     }
@@ -84,6 +113,7 @@ function procesarExcel() {
 
   reader.readAsArrayBuffer(file);
 }
+
 
 // ─── LISTA DE ALUMNOS ─────────────────────────────────────────────────────────
 function mostrarListaAlumnos(datos) {
@@ -94,8 +124,11 @@ function mostrarListaAlumnos(datos) {
     const div = document.createElement('div');
     div.className = 'alumno-item';
     div.innerHTML = `
-      <div class="alumno-nombre">${alumno.nombres} ${alumno.apellidos}</div>
-      <div class="alumno-rut">${alumno.rut}</div>
+      <div class="alumno-numero">${index + 1}</div>
+      <div class="alumno-info">
+        <div class="alumno-nombre">${alumno.nombres} ${alumno.apellidos}</div>
+        <div class="alumno-rut">${alumno.rut}</div>
+      </div>
     `;
     div.onclick = () => cargarCertificado(alumno, index);
     alumnosList.appendChild(div);
@@ -131,6 +164,7 @@ function cargarCertificado(alumno, index = 0) {
   document.getElementById('infModalidad').innerText = alumno.modalidad || '-';
   document.getElementById('infoPanel').classList.add('visible');
   document.getElementById('btnDescargar').style.display = 'block';
+  document.getElementById('btnDescargarTodos').style.display = 'block';
 
   const items = document.querySelectorAll('.alumno-item');
   items.forEach(item => item.classList.remove('active'));
@@ -308,4 +342,276 @@ function actualizarRegistros() {
   // Encontrar index del alumno actual
   const index = alumnos.findIndex(a => a.rut === alumnoActual.rut);
   cargarCertificado(alumnoActual, index >= 0 ? index : 0);
+}
+
+// ─── DESCARGAR TODOS LOS CERTIFICADOS EN ZIP ──────────────────────────────────
+async function descargarTodosCertificados() {
+  if (!alumnos || alumnos.length === 0) {
+    alert('No hay alumnos cargados');
+    return;
+  }
+
+  if (!templateBase64) {
+    alert('No hay imagen template cargada. Carga el archivo template.png primero.');
+    return;
+  }
+
+  const btnDescargarTodos = document.getElementById('btnDescargarTodos');
+  btnDescargarTodos.disabled = true;
+  btnDescargarTodos.innerText = 'Generando...';
+
+  try {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      throw new Error('jsPDF no está disponible. Recarga la página.');
+    }
+
+    const JSZip = window.JSZip;
+    const zip = new JSZip();
+    const prefijo = document.getElementById('prefijoRegistro').value.trim().toUpperCase();
+
+    // Generar PDF para cada alumno
+    for (let index = 0; index < alumnos.length; index++) {
+      const alumno = alumnos[index];
+      
+      // Crear canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = 1448;
+      canvas.height = 1024;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) throw new Error('No se pudo crear el contexto del canvas');
+
+      // Cargar imagen
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('No se pudo cargar el template'));
+        img.src = templateBase64;
+      });
+
+      ctx.drawImage(img, 0, 0, 1448, 1024);
+
+      // Preparar datos del alumno
+      const nombreCompleto = `${alumno.nombres || ''} ${alumno.apellidos || ''}`.toUpperCase();
+      const numRegistro = index + 1;
+      const codigoRegistro = prefijo ? `${prefijo}${numRegistro}` : `${numRegistro}`;
+
+      const scaleX = 1448 / 900;
+      const scaleY = 1024 / 630;
+
+      // REGISTRO
+      ctx.fillStyle = '#1d2430';
+      ctx.font = `${Math.round(13 * scaleX)}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.fillText(codigoRegistro, Math.round(180 * scaleX), Math.round(67.5 * scaleY + 13));
+
+      // NOMBRE
+      ctx.fillStyle = '#1f252e';
+      ctx.font = `${Math.round(30 * scaleX)}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillText(nombreCompleto, 724, Math.round(280 * scaleY + 30));
+
+      // RUT
+      ctx.fillStyle = '#123d73';
+      ctx.font = `${Math.round(32 * scaleX)}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillText(alumno.rut || '', 724, Math.round(320 * scaleY + 32));
+
+      // CURSO
+      ctx.fillStyle = '#1d2430';
+      ctx.font = `bold ${Math.round(18 * scaleX)}px Arial`;
+      ctx.textAlign = 'center';
+      wrapText(ctx, (alumno.curso || '').toUpperCase(), 724, Math.round(410 * scaleY), Math.round(780 * scaleX), Math.round(38 * scaleY));
+
+      // FECHAS Y DATOS
+      const inicio = (alumno.fechaInicio || '').toUpperCase();
+      const termino = (alumno.fechaTermino || '').toUpperCase();
+      const duracion = (alumno.duracion || '').toUpperCase();
+      const modalidad = (alumno.modalidad || '').toUpperCase();
+
+      ctx.fillStyle = '#1d2430';
+      ctx.font = `${Math.round(10 * scaleX)}px Arial`;
+
+      // FECHA INICIO
+      ctx.textAlign = 'left';
+      const yInicio = 1024 - Math.round(185 * scaleY);
+      ctx.fillText(inicio, Math.round(272 * scaleX), yInicio);
+
+      // FECHA TÉRMINO
+      const yTermino = 1024 - Math.round(165 * scaleY);
+      ctx.fillText(termino, Math.round(290 * scaleX), yTermino);
+
+      // DURACIÓN
+      ctx.textAlign = 'right';
+      const xDuracion = 1448 - Math.round(295 * scaleX);
+      ctx.fillText(duracion, xDuracion, yInicio);
+
+      // MODALIDAD
+      const yModalidad = 1024 - Math.round(161 * scaleY);
+      const xModalidad = 1448 - Math.round(280 * scaleX);
+      ctx.fillText(modalidad, xModalidad, yModalidad);
+
+      // Convertir a PDF
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [1448, 1024]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, 1448, 1024);
+
+      const nombreArchivo = alumno.nombres && alumno.apellidos
+        ? `${alumno.nombres}-${alumno.apellidos}`
+        : `alumno-${numRegistro}`;
+
+      // Agregar PDF al ZIP
+      const pdfData = pdf.output('arraybuffer');
+      zip.file(`${nombreArchivo.replace(/\s+/g, '-')}.pdf`, pdfData);
+
+      // Actualizar el botón cada 5 alumnos
+      if ((index + 1) % 5 === 0 || index === alumnos.length - 1) {
+        btnDescargarTodos.innerText = `Procesando ${index + 1}/${alumnos.length}...`;
+      }
+    }
+
+    // Generar el ZIP
+    btnDescargarTodos.innerText = 'Comprimiendo...';
+    const zipData = await zip.generateAsync({ type: 'blob' });
+
+    // Descargar el ZIP con nombre que incluya la página
+    const nombrePagina = paginasNombres[paginaActual] || 'pagina';
+    const nombreArchivo = `certificados-${nombrePagina.replace(/\s+/g, '-')}.zip`;
+    saveAs(zipData, nombreArchivo);
+
+    btnDescargarTodos.disabled = false;
+    btnDescargarTodos.innerText = 'Descargar Todos';
+
+  } catch (error) {
+    console.error('Error completo:', error);
+    alert('Error al generar certificados: ' + (error.message || 'Error desconocido'));
+    btnDescargarTodos.disabled = false;
+    btnDescargarTodos.innerText = 'Descargar Todos';
+  }
+}
+
+// ─── FILTRAR ALUMNOS POR BÚSQUEDA ─────────────────────────────────────────────
+function filtrarAlumnos() {
+  const busqueda = document.getElementById('buscarAlumnos').value.toLowerCase().trim();
+  
+  if (busqueda === '') {
+    // Si el campo está vacío, mostrar todos los alumnos
+    alumnosFiltrados = [...alumnos];
+  } else {
+    // Filtrar por nombre o RUT
+    alumnosFiltrados = alumnos.filter(alumno => {
+      const nombre = `${alumno.nombres} ${alumno.apellidos}`.toLowerCase();
+      const rut = (alumno.rut || '').toLowerCase();
+      return nombre.includes(busqueda) || rut.includes(busqueda);
+    });
+  }
+  
+  // Re-renderizar la lista de alumnos
+  mostrarListaAlumnos(alumnosFiltrados);
+}
+
+// ─── RESETEAR SISTEMA ─────────────────────────────────────────────────────────
+function resetearSistema() {
+  const confirmacion = confirm('¿Estás seguro de que deseas limpiar todo? Se eliminarán todos los alumnos cargados y los certificados (se mantendrá el template).');
+  
+  if (!confirmacion) return;
+
+  // Limpiar datos
+  alumnos = [];
+  alumnosFiltrados = [];
+  alumnoActual = null;
+  alumnosPorPagina = {};
+  paginasNombres = [];
+  paginaActual = 0;
+
+  // Limpiar inputs
+  document.getElementById('excelFile').value = '';
+  document.getElementById('buscarAlumnos').value = '';
+  document.getElementById('prefijoRegistro').value = '';
+
+  // Limpiar lista de alumnos
+  document.getElementById('alumnosList').innerHTML = '';
+
+  // Ocultar botones de descarga
+  document.getElementById('btnDescargar').style.display = 'none';
+  document.getElementById('btnDescargarTodos').style.display = 'none';
+
+  // Ocultar barra de navegación
+  document.getElementById('pagesNavigation').style.display = 'none';
+  document.getElementById('paginasHeader').innerText = 'ALUMNOS CARGADOS';
+
+  // Limpiar preview
+  const previewContainer = document.getElementById('previewContainer');
+  previewContainer.innerHTML = '<div class="preview-empty">Carga el template y un archivo Excel para ver los certificados aquí</div>';
+
+  // Ocultar panel de información
+  document.getElementById('infoPanel').classList.remove('visible');
+
+  // Limpiar campos de información
+  document.getElementById('infNombre').innerText = '-';
+  document.getElementById('infRut').innerText = '-';
+  document.getElementById('infCurso').innerText = '-';
+  document.getElementById('infDuracion').innerText = '-';
+  document.getElementById('infModalidad').innerText = '-';
+
+  alert('Sistema limpiado. El template se ha mantenido. Listo para un nuevo proceso.');
+}
+
+// ─── CAMBIAR DE PÁGINA ───────────────────────────────────────────────────────
+function cambiarPagina(direccion) {
+  const nuevaPagina = paginaActual + direccion;
+  
+  if (nuevaPagina < 0 || nuevaPagina >= paginasNombres.length) {
+    return;
+  }
+
+  paginaActual = nuevaPagina;
+  const nombrePagina = paginasNombres[paginaActual];
+  
+  // Cargar alumnos de la página actual
+  alumnos = alumnosPorPagina[nombrePagina] || [];
+  alumnosFiltrados = [...alumnos];
+  
+  // Limpiar búsqueda
+  document.getElementById('buscarAlumnos').value = '';
+  
+  // Actualizar header
+  document.getElementById('paginasHeader').innerText = `ALUMNOS CARGADOS - ${nombrePagina}`;
+  
+  // Mostrar lista de alumnos
+  mostrarListaAlumnos(alumnos);
+  
+  // Cargar el primer alumno
+  if (alumnos.length > 0) {
+    cargarCertificado(alumnos[0], 0);
+  }
+  
+  // Mostrar barra de navegación si hay múltiples páginas
+  const pagesNav = document.getElementById('pagesNavigation');
+  if (paginasNombres.length > 1) {
+    pagesNav.style.display = 'flex';
+  } else {
+    pagesNav.style.display = 'none';
+  }
+  
+  // Actualizar botones de navegación
+  actualizarBotonesNavegacion();
+}
+
+// ─── ACTUALIZAR BOTONES DE NAVEGACIÓN ────────────────────────────────────────
+function actualizarBotonesNavegacion() {
+  const btnPrev = document.getElementById('btnPrevPage');
+  const btnNext = document.getElementById('btnNextPage');
+  const pageInfo = document.getElementById('pageInfo');
+  
+  btnPrev.disabled = paginaActual === 0;
+  btnNext.disabled = paginaActual === paginasNombres.length - 1;
+  
+  pageInfo.innerText = `Página ${paginaActual + 1} de ${paginasNombres.length}`;
 }
