@@ -379,9 +379,10 @@ async function generarPDFActual() {
     const xDuracion = 1448 - Math.round(295 * scaleX);
     ctx.fillText(duracion  || 'DURACIÓN',  xDuracion, yInicio);
 
-    // MODALIDAD (bottom: 158px, right: 280px)
+    // MODALIDAD (bottom: 158px, left: 555px)
+    ctx.textAlign = 'left';
     const yModalidad = 1024 - Math.round(161 * scaleY);
-    const xModalidad = 1448 - Math.round(280 * scaleX);
+    const xModalidad = Math.round(555 * scaleX);
     ctx.fillText(modalidad || 'MODALIDAD', xModalidad, yModalidad);
 
     // ── Exportar a PDF ──────────────────────────────────────────────────────
@@ -580,8 +581,10 @@ async function descargarTodosCertificados() {
       const xDuracion = 1448 - Math.round(295 * scaleX);
       ctx.fillText(duracion, xDuracion, yInicio);
 
+      // MODALIDAD (bottom: 158px, left: 555px)
+      ctx.textAlign = 'left';
       const yModalidad = 1024 - Math.round(161 * scaleY);
-      const xModalidad = 1448 - Math.round(280 * scaleX);
+      const xModalidad = Math.round(555 * scaleX);
       ctx.fillText(modalidad, xModalidad, yModalidad);
 
       // Convertir a PDF
