@@ -15,18 +15,34 @@ function cargarTemplate(input) {
 
   const reader = new FileReader();
   reader.onload = function(e) {
-    templateBase64 = e.target.result; // data:image/png;base64,...
+    // Cargar la imagen original y redimensionarla
+    const img = new Image();
+    img.onload = function() {
+      // Crear un canvas con dimensiones correctas 1448x1024
+      const canvas = document.createElement('canvas');
+      canvas.width = 1448;
+      canvas.height = 1024;
+      const ctx = canvas.getContext('2d');
+      
+      // Dibujar la imagen redimensionada
+      ctx.drawImage(img, 0, 0, 1448, 1024);
+      
+      // Exportar como JPEG comprimido (calidad 0.75 para reducir peso)
+      // Esto comprime mucho más que PNG
+      templateBase64 = canvas.toDataURL('image/jpeg', 0.75);
 
-    // Actualizar la imagen de preview en el certificado oculto
-    document.getElementById('templateBg').src = templateBase64;
+      // Actualizar la imagen de preview en el certificado oculto
+      document.getElementById('templateBg').src = templateBase64;
 
-    // Marcar como cargado
-    const status = document.getElementById('templateStatus');
-    status.textContent = 'Cargado';
-    status.classList.add('ok');
+      // Marcar como cargado
+      const status = document.getElementById('templateStatus');
+      status.textContent = 'Cargado';
+      status.classList.add('ok');
 
-    // Si ya hay un alumno seleccionado, refrescar el preview
-    if (alumnoActual) mostrarPreview();
+      // Si ya hay un alumno seleccionado, refrescar el preview
+      if (alumnoActual) mostrarPreview();
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
@@ -323,7 +339,7 @@ async function generarPDFActual() {
 
     ctx.drawImage(img, 0, 0, 1448, 1024);
 
-    // ── Textos sobre el canvas ──────────────────────────────────────────────
+    // ─── Textos sobre el canvas ──────────────────────────────────────────────
     // Factor de escala: Canvas (1448x1024) vs Preview (900x630)
     const scaleX = 1448 / 900;
     const scaleY = 1024 / 630;
@@ -386,7 +402,7 @@ async function generarPDFActual() {
     ctx.fillText(modalidad || 'MODALIDAD', xModalidad, yModalidad);
 
     // ── Exportar a PDF ──────────────────────────────────────────────────────
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.85);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({
       orientation: 'landscape',
@@ -394,7 +410,7 @@ async function generarPDFActual() {
       format: [1448, 1024]
     });
 
-    pdf.addImage(imgData, 'PNG', 0, 0, 1448, 1024);
+    pdf.addImage(imgData, 'JPEG', 0, 0, 1448, 1024);
 
     const nombreArchivo = alumnoActual.nombres && alumnoActual.apellidos
       ? `${alumnoActual.nombres}-${alumnoActual.apellidos}`
@@ -588,7 +604,7 @@ async function descargarTodosCertificados() {
       ctx.fillText(modalidad, xModalidad, yModalidad);
 
       // Convertir a PDF
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({
         orientation: 'landscape',
@@ -596,7 +612,7 @@ async function descargarTodosCertificados() {
         format: [1448, 1024]
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, 1448, 1024);
+      pdf.addImage(imgData, 'JPEG', 0, 0, 1448, 1024);
 
       const nombreArchivo = alumno.nombres && alumno.apellidos
         ? `${alumno.nombres}-${alumno.apellidos}`
