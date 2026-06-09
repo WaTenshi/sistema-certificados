@@ -94,6 +94,8 @@ export async function fillWordTemplate(template: ArrayBuffer, student: Student):
   xml = injectInParagraphId(xml, '572397BE', student.rut)
   xml = injectInParagraphId(xml, '0B813C2D', `${student.nombres} ${student.apellidos}`)
   xml = injectInParagraphId(xml, '77EE5041', student.nota ?? '')
+  xml = injectInParagraphId(xml, '0C89B983', student.asistencia ?? '')
+  xml = injectInParagraphId(xml, '1A9E9FA6', student.evaluacion ?? '')
 
   zip.file('word/document.xml', xml)
   return zip.generateAsync({ type: 'arraybuffer' })

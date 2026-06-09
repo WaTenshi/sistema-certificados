@@ -7,6 +7,20 @@ function text(value: unknown): string {
   return value == null ? '' : String(value).trim()
 }
 
+function normalizeHeader(value: unknown): string {
+  return text(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function findColumn(headers: RawRow, names: string[], fallback: number): number {
+  const normalizedNames = names.map(normalizeHeader)
+  const index = headers.findIndex((header) => normalizedNames.includes(normalizeHeader(header)))
+  return index >= 0 ? index : fallback
+}
+
 function readWorkbook(file: File): Promise<XLSX.WorkBook> {
   return file.arrayBuffer().then((buffer) => XLSX.read(buffer, { type: 'array' }))
 }
@@ -104,11 +118,11 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
       else if (label.includes('modalidad')) modalidad = value
     }
 
-    let firstStudentRow = rows.findIndex((row) => {
+    const headerRowIndex = rows.findIndex((row) => {
       const rowText = row.map((cell) => text(cell).toLowerCase()).join('|')
       return rowText.includes('nombres') && rowText.includes('apellidos') && rowText.includes('rut')
     })
-    firstStudentRow = firstStudentRow >= 0 ? firstStudentRow + 1 : -1
+    let firstStudentRow = headerRowIndex >= 0 ? headerRowIndex + 1 : -1
 
     if (firstStudentRow < 0) {
       firstStudentRow = rows.findIndex((row) => {
@@ -118,10 +132,22 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
     }
     if (firstStudentRow < 0) return
 
+    const headers = headerRowIndex >= 0 ? rows[headerRowIndex] : []
+    const columns = {
+      nombres: findColumn(headers, ['nombres', 'nombre'], 1),
+      apellidos: findColumn(headers, ['apellidos', 'apellido'], 2),
+      rut: findColumn(headers, ['rut'], 3),
+      nota: findColumn(headers, ['nota'], 4),
+      evaluacion: findColumn(headers, ['evaluacion'], -1),
+      asistencia: findColumn(headers, ['asistencia'], -1),
+      correo: findColumn(headers, ['email', 'correo', 'correo electronico'], 5),
+      telefono: findColumn(headers, ['celular', 'telefono', 'fono'], -1),
+    }
+
     rows.slice(firstStudentRow).forEach((row) => {
-      const nombres = text(row[1])
-      const apellidos = text(row[2])
-      const rut = text(row[3])
+      const nombres = text(row[columns.nombres])
+      const apellidos = text(row[columns.apellidos])
+      const rut = text(row[columns.rut])
       if (!nombres || !apellidos || !rut) return
 
       const key = `${nombres}${apellidos}${rut}`.toLowerCase()
@@ -132,8 +158,11 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
         nombres,
         apellidos,
         rut,
-        nota: text(row[4]),
-        correo: text(row[5]),
+        nota: text(row[columns.nota]),
+        evaluacion: columns.evaluacion >= 0 ? text(row[columns.evaluacion]) : '',
+        asistencia: columns.asistencia >= 0 ? text(row[columns.asistencia]) : '',
+        correo: text(row[columns.correo]),
+        telefono: columns.telefono >= 0 ? text(row[columns.telefono]) : '',
         curso,
         duracion,
         fechaInicio,

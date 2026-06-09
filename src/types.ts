@@ -11,6 +11,8 @@ export interface Student {
   telefono?: string
   correo?: string
   nota?: string
+  asistencia?: string
+  evaluacion?: string
   curso: string
   duracion: string
   fechaInicio: string
