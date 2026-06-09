@@ -12,6 +12,22 @@ function escapeXml(value: string): string {
     .replace(/"/g, '&quot;')
 }
 
+function createDataRun(value: string, leadingSpace = false): string {
+  const content = `${leadingSpace ? ' ' : ''}${escapeXml(value)}`
+  return `<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:b w:val="0"/><w:bCs w:val="0"/><w:i w:val="0"/><w:iCs w:val="0"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">${content}</w:t></w:r>`
+}
+
+function replaceRunContainingText(paragraph: string, textPosition: number, run: string): string {
+  const runStarts = Array.from(
+    paragraph.slice(0, textPosition).matchAll(/<w:r(?:\s[^>]*)?>/g),
+  )
+  const runStart = runStarts.at(-1)?.index ?? -1
+  const runEnd = paragraph.indexOf('</w:r>', textPosition)
+  if (runStart < 0 || runEnd < 0) return paragraph
+
+  return paragraph.slice(0, runStart) + run + paragraph.slice(runEnd + 6)
+}
+
 function injectInParagraph(xml: string, label: string, value: string): string {
   if (!value) return xml
   const needle = `>${label}<`
@@ -32,16 +48,11 @@ function injectInParagraph(xml: string, label: string, value: string): string {
     if (match.index > labelPosition) lastMatch = match
   }
 
-  const escaped = escapeXml(value)
   if (lastMatch) {
-    paragraph =
-      paragraph.slice(0, lastMatch.index) +
-      `<w:t${lastMatch[1]}>${escaped}</w:t>` +
-      paragraph.slice(lastMatch.index + lastMatch[0].length)
+    paragraph = replaceRunContainingText(paragraph, lastMatch.index, createDataRun(value, true))
   } else {
     const insertAt = paragraph.lastIndexOf('</w:p>')
-    const run = `<w:r><w:rPr><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve"> ${escaped}</w:t></w:r>`
-    paragraph = paragraph.slice(0, insertAt) + run + paragraph.slice(insertAt)
+    paragraph = paragraph.slice(0, insertAt) + createDataRun(value, true) + paragraph.slice(insertAt)
   }
 
   return xml.slice(0, start) + paragraph + xml.slice(end)
@@ -58,14 +69,12 @@ function injectInParagraphId(xml: string, paragraphId: string, value: string): s
 
   let paragraph = xml.slice(start, end)
   const existingRun = /<w:t([^>]*)>([ \u00a0]*)<\/w:t>/.exec(paragraph)
-  const escaped = escapeXml(value)
 
   if (existingRun) {
-    paragraph = paragraph.replace(existingRun[0], `<w:t${existingRun[1]}>${escaped}</w:t>`)
+    paragraph = replaceRunContainingText(paragraph, existingRun.index, createDataRun(value))
   } else {
     const insertAt = paragraph.lastIndexOf('</w:p>')
-    const run = `<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">${escaped}</w:t></w:r>`
-    paragraph = paragraph.slice(0, insertAt) + run + paragraph.slice(insertAt)
+    paragraph = paragraph.slice(0, insertAt) + createDataRun(value) + paragraph.slice(insertAt)
   }
 
   return xml.slice(0, start) + paragraph + xml.slice(end)
