@@ -6,6 +6,7 @@ type IconName =
   | 'chevronDown'
   | 'chevronLeft'
   | 'chevronRight'
+  | 'chevronUp'
   | 'close'
   | 'download'
   | 'file'
@@ -26,6 +27,7 @@ const paths: Record<IconName, ReactNode> = {
   chevronDown: <path d="m6 9 6 6 6-6" />,
   chevronLeft: <path d="m15 18-6-6 6-6" />,
   chevronRight: <path d="m9 18 6-6-6-6" />,
+  chevronUp: <path d="m18 15-6-6-6 6" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   download: <><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>,
   file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></>,

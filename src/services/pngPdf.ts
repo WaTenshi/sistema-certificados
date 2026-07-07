@@ -1,5 +1,16 @@
 import { jsPDF } from 'jspdf'
 import type { Student } from '../types'
+import {
+  certificateFieldText,
+  copyDefaultCertificateTexts,
+  formatCertificateFieldText,
+  copyDefaultCertificateLayout,
+  type CertificateFieldKey,
+  type CertificateFieldLayout,
+  type CertificateLayout,
+  type CertificateTextContent,
+} from '../utils/certificateLayout'
+import { certificateDetail } from '../utils/certificateFields'
 
 const WIDTH = 1448
 const HEIGHT = 1024
@@ -40,10 +51,66 @@ function wrapText(
   context.fillText(line.trim(), x, y)
 }
 
+function drawDetail(
+  context: CanvasRenderingContext2D,
+  field: Parameters<typeof certificateDetail>[1],
+  student: Student,
+  layout: CertificateFieldLayout,
+  scaleX: number,
+  scaleY: number,
+) {
+  const detail = certificateDetail(student, field)
+  const fontSize = Math.round(layout.fontSize * scaleX)
+  const x = Math.round(layout.x * scaleX)
+  const y = Math.round((layout.y * scaleY) + fontSize)
+
+  context.fillStyle = layout.color
+  context.textAlign = layout.align
+  context.font = `${layout.fontStyle === 'italic' ? 'italic ' : ''}bold ${fontSize}px Arial`
+  context.fillText(`${detail.label.toUpperCase()}:`, x, y)
+
+  if (!detail.value) return
+
+  const labelWidth = context.measureText(`${detail.label.toUpperCase()}: `).width
+  context.font = `${layout.fontStyle === 'italic' ? 'italic ' : ''}${fontSize}px Arial`
+  context.fillText(detail.value.toUpperCase(), x + labelWidth, y)
+}
+
+function drawField(
+  context: CanvasRenderingContext2D,
+  field: CertificateFieldKey,
+  student: Student,
+  code: string,
+  layout: CertificateFieldLayout,
+  texts: CertificateTextContent,
+  scaleX: number,
+  scaleY: number,
+) {
+  if (field === 'fechaInicio' || field === 'fechaTermino' || field === 'duracion' || field === 'modalidad') {
+    drawDetail(context, field, student, layout, scaleX, scaleY)
+    return
+  }
+
+  const fontSize = Math.round(layout.fontSize * scaleX)
+  context.fillStyle = layout.color
+  context.font = `${layout.fontStyle === 'italic' ? 'italic ' : ''}${layout.weight === 'bold' ? 'bold ' : ''}${fontSize}px Arial`
+  context.textAlign = layout.align
+  wrapText(
+    context,
+    formatCertificateFieldText(certificateFieldText(field, student, code, texts), layout),
+    Math.round(layout.x * scaleX),
+    Math.round((layout.y * scaleY) + fontSize),
+    Math.round(layout.width * scaleX),
+    Math.round(layout.fontSize * layout.lineHeight * scaleY),
+  )
+}
+
 export async function createCertificateCanvas(
   student: Student,
   templateUrl: string,
   code: string,
+  layout: CertificateLayout = copyDefaultCertificateLayout(),
+  texts: CertificateTextContent = copyDefaultCertificateTexts(),
 ): Promise<HTMLCanvasElement> {
   const canvas = document.createElement('canvas')
   canvas.width = WIDTH
@@ -54,43 +121,9 @@ export async function createCertificateCanvas(
   context.drawImage(await loadImage(templateUrl), 0, 0, WIDTH, HEIGHT)
   const scaleX = WIDTH / PREVIEW_WIDTH
   const scaleY = HEIGHT / PREVIEW_HEIGHT
-  const fullName = `${student.nombres} ${student.apellidos}`.trim().toUpperCase()
-
-  context.fillStyle = '#1d2430'
-  context.font = `${Math.round(13 * scaleX)}px Arial`
-  context.textAlign = 'left'
-  context.fillText(code, Math.round(180 * scaleX), Math.round(67.5 * scaleY + 13))
-
-  context.fillStyle = '#1f252e'
-  context.font = `${Math.round(30 * scaleX)}px Arial`
-  context.textAlign = 'center'
-  context.fillText(fullName, WIDTH / 2, Math.round(280 * scaleY + 30))
-
-  context.fillStyle = '#123d73'
-  context.font = `${Math.round(32 * scaleX)}px Arial`
-  context.fillText(student.rut, WIDTH / 2, Math.round(320 * scaleY + 32))
-
-  context.fillStyle = '#1d2430'
-  context.font = `bold ${Math.round(18 * scaleX)}px Arial`
-  wrapText(
-    context,
-    student.curso.toUpperCase(),
-    WIDTH / 2,
-    Math.round(410 * scaleY),
-    Math.round(780 * scaleX),
-    Math.round(38 * scaleY),
-  )
-
-  context.font = `${Math.round(10 * scaleX)}px Arial`
-  const startY = HEIGHT - Math.round(185 * scaleY)
-  const endY = HEIGHT - Math.round(165 * scaleY)
-  context.textAlign = 'left'
-  context.fillText(student.fechaInicio.toUpperCase(), Math.round(272 * scaleX), startY)
-  context.fillText(student.fechaTermino.toUpperCase(), Math.round(290 * scaleX), endY)
-  context.textAlign = 'right'
-  context.fillText(student.duracion.toUpperCase(), WIDTH - Math.round(295 * scaleX), startY)
-  context.textAlign = 'left'
-  context.fillText(student.modalidad.toUpperCase(), Math.round(555 * scaleX), HEIGHT - Math.round(161 * scaleY))
+  Object.entries(layout).filter(([, fieldLayout]) => fieldLayout.visible !== false).forEach(([field, fieldLayout]) => {
+    drawField(context, field as CertificateFieldKey, student, code, fieldLayout, texts, scaleX, scaleY)
+  })
 
   return canvas
 }
@@ -99,8 +132,10 @@ export async function createPngCertificatePdf(
   student: Student,
   templateUrl: string,
   code: string,
+  layout?: CertificateLayout,
+  texts?: CertificateTextContent,
 ): Promise<jsPDF> {
-  const canvas = await createCertificateCanvas(student, templateUrl, code)
+  const canvas = await createCertificateCanvas(student, templateUrl, code, layout, texts)
   const imageBlob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (blob) => blob ? resolve(blob) : reject(new Error('No se pudo comprimir el certificado')),

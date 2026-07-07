@@ -1,5 +1,15 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import type { Student, TemplateMode } from '../types'
+import {
+  certificateFieldLabels,
+  clampLayout,
+  copyDefaultCertificateLayout,
+  type CertificateFieldKey,
+  type CertificateFieldLayout,
+  type CertificateLayout,
+  type CertificateTextContent,
+  type CertificateTextFieldKey,
+} from '../utils/certificateLayout'
 import { studentName } from '../utils/students'
 import { ImageCertificatePreview, WordCertificatePreview } from './CertificatePreview'
 import { Icon } from './Icon'
@@ -23,8 +33,8 @@ function FittedPreview({
     if (!host) return
 
     const resize = () => {
-      const availableWidth = Math.max(host.clientWidth - 48, 1)
-      const availableHeight = Math.max(host.clientHeight - 48, 1)
+      const availableWidth = Math.max(host.clientWidth - 24, 1)
+      const availableHeight = Math.max(host.clientHeight - 24, 1)
       setFitScale(Math.min(availableWidth / width, availableHeight / height, 1))
     }
 
@@ -53,6 +63,209 @@ function FittedPreview({
   )
 }
 
+const editableFields = Object.keys(certificateFieldLabels) as CertificateFieldKey[]
+const textEditableFields = new Set<CertificateFieldKey>(['introText', 'senceLegend'])
+
+function isTextField(field: CertificateFieldKey): field is CertificateTextFieldKey {
+  return textEditableFields.has(field)
+}
+
+function LayoutNumberInput({
+  label,
+  value,
+  min,
+  max,
+  disabled = false,
+  onChange,
+}: {
+  label: string
+  value: number | ''
+  min: number
+  max: number
+  disabled?: boolean
+  onChange: (value: number) => void
+}) {
+  return (
+    <label className="layout-number-field">
+      <span>{label}</span>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step="1"
+        value={typeof value === 'number' ? Math.round(value) : ''}
+        placeholder={typeof value === 'number' ? undefined : 'Varios'}
+        disabled={disabled}
+        onChange={(event) => {
+          if (event.target.value === '') return
+          onChange(Number(event.target.value))
+        }}
+      />
+    </label>
+  )
+}
+
+function LayoutEditor({
+  selectedFields,
+  layout,
+  texts,
+  busy,
+  onSelectField,
+  onToggleField,
+  onUpdateField,
+  onUpdateSelected,
+  onTextChange,
+  onMoveSelected,
+  onResetSelected,
+  onResetAll,
+  onToggleSenceLegend,
+}: {
+  selectedFields: CertificateFieldKey[]
+  layout: CertificateLayout
+  texts: CertificateTextContent
+  busy: boolean
+  onSelectField: (field: CertificateFieldKey) => void
+  onToggleField: (field: CertificateFieldKey) => void
+  onUpdateField: (field: CertificateFieldKey, patch: Partial<CertificateFieldLayout>) => void
+  onUpdateSelected: (patch: Partial<CertificateFieldLayout>) => void
+  onTextChange: (field: CertificateTextFieldKey, value: string) => void
+  onMoveSelected: (deltaX: number, deltaY: number) => void
+  onResetSelected: () => void
+  onResetAll: () => void
+  onToggleSenceLegend: () => void
+}) {
+  const activeField = selectedFields.at(-1) ?? 'curso'
+  const selectedCount = selectedFields.length
+  const multipleSelected = selectedCount > 1
+  const fieldLayout = layout[activeField]
+  const availableFields = editableFields.filter((field) => layout[field].visible !== false)
+  const senceLegendVisible = layout.senceLegend.visible !== false
+
+  function sharedValue(key: 'fontSize' | 'width') {
+    const firstValue = layout[selectedFields[0] ?? activeField][key]
+    return selectedFields.every((field) => layout[field][key] === firstValue) ? firstValue : ''
+  }
+
+  function updateSinglePosition(patch: Partial<CertificateFieldLayout>) {
+    onUpdateField(activeField, patch)
+  }
+
+  function updateSelectedMetric(patch: Partial<CertificateFieldLayout>) {
+    onUpdateSelected(patch)
+  }
+
+  const fontSizeValue = sharedValue('fontSize')
+  const widthValue = sharedValue('width')
+
+  function move(deltaX: number, deltaY: number) {
+    onMoveSelected(deltaX, deltaY)
+  }
+
+  return (
+    <div className="layout-editor">
+      <label className="layout-select-field">
+        <span>Campo activo</span>
+        <select
+          value={activeField}
+          disabled={busy}
+          onChange={(event) => onSelectField(event.target.value as CertificateFieldKey)}
+        >
+          {availableFields.map((field) => (
+            <option key={field} value={field}>{certificateFieldLabels[field]}</option>
+          ))}
+        </select>
+      </label>
+
+      <div className="layout-multi-select" aria-label="Campos seleccionados">
+        {availableFields.map((field) => (
+          <label key={field} className={selectedFields.includes(field) ? 'checked' : ''}>
+            <input
+              type="checkbox"
+              checked={selectedFields.includes(field)}
+              disabled={busy}
+              onChange={() => onToggleField(field)}
+            />
+            <span>{certificateFieldLabels[field]}</span>
+          </label>
+        ))}
+      </div>
+
+      {isTextField(activeField) && (
+        <label className="layout-text-field">
+          <span>Texto</span>
+          <textarea
+            value={texts[activeField]}
+            disabled={busy}
+            rows={activeField === 'senceLegend' ? 3 : 2}
+            onChange={(event) => onTextChange(activeField, event.target.value)}
+          />
+        </label>
+      )}
+
+      <div className="layout-nudge" aria-label="Mover campo">
+        <button type="button" disabled={busy} title="Mover arriba" onClick={() => move(0, -1)}>
+          <Icon name="chevronUp" />
+        </button>
+        <button type="button" disabled={busy} title="Mover izquierda" onClick={() => move(-1, 0)}>
+          <Icon name="chevronLeft" />
+        </button>
+        <button type="button" disabled={busy} title="Mover derecha" onClick={() => move(1, 0)}>
+          <Icon name="chevronRight" />
+        </button>
+        <button type="button" disabled={busy} title="Mover abajo" onClick={() => move(0, 1)}>
+          <Icon name="chevronDown" />
+        </button>
+      </div>
+
+      <div className="layout-metrics">
+        <LayoutNumberInput
+          label="X"
+          min={0}
+          max={900}
+          value={fieldLayout.x}
+          disabled={multipleSelected}
+          onChange={(value) => updateSinglePosition({ x: value })}
+        />
+        <LayoutNumberInput
+          label="Y"
+          min={0}
+          max={630}
+          value={fieldLayout.y}
+          disabled={multipleSelected}
+          onChange={(value) => updateSinglePosition({ y: value })}
+        />
+        <LayoutNumberInput
+          label="Tamaño"
+          min={6}
+          max={72}
+          value={fontSizeValue}
+          onChange={(value) => updateSelectedMetric({ fontSize: value })}
+        />
+        <LayoutNumberInput
+          label="Ancho"
+          min={40}
+          max={900}
+          value={widthValue}
+          onChange={(value) => updateSelectedMetric({ width: value })}
+        />
+      </div>
+
+      <div className="layout-reset-actions">
+        <span>{selectedCount} seleccionado{selectedCount === 1 ? '' : 's'}</span>
+        <button type="button" disabled={busy} onClick={onToggleSenceLegend}>
+          {senceLegendVisible ? 'Quitar leyenda SENCE' : 'Añadir leyenda SENCE'}
+        </button>
+        <button type="button" disabled={busy} onClick={onResetSelected}>
+          Restablecer selección
+        </button>
+        <button type="button" disabled={busy} onClick={onResetAll}>
+          Restablecer todo
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function PreviewPanel({
   mode,
   student,
@@ -61,7 +274,11 @@ export function PreviewPanel({
   templateUrl,
   wordTemplate,
   certificateCode,
+  certificateLayout,
+  certificateTexts,
   busy,
+  onLayoutChange,
+  onTextChange,
   onDownloadCurrent,
   onDownloadAll,
 }: {
@@ -72,12 +289,109 @@ export function PreviewPanel({
   templateUrl: string
   wordTemplate: ArrayBuffer | null
   certificateCode: string
+  certificateLayout: CertificateLayout
+  certificateTexts: CertificateTextContent
   busy: boolean
+  onLayoutChange: Dispatch<SetStateAction<CertificateLayout>>
+  onTextChange: Dispatch<SetStateAction<CertificateTextContent>>
   onDownloadCurrent: () => void
   onDownloadAll: () => void
 }) {
   const [zoom, setZoom] = useState(1)
+  const [selectedFields, setSelectedFields] = useState<CertificateFieldKey[]>(['curso'])
   const zoomPercentage = Math.round(zoom * 100)
+
+  function selectField(field: CertificateFieldKey, additive = false) {
+    setSelectedFields((current) => {
+      if (!additive) return [field]
+      if (current.includes(field)) {
+        const next = current.filter((item) => item !== field)
+        return next.length ? next : [field]
+      }
+      return [...current, field]
+    })
+  }
+
+  function toggleField(field: CertificateFieldKey) {
+    selectField(field, true)
+  }
+
+  function updateCertificateText(field: CertificateTextFieldKey, value: string) {
+    onTextChange((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  function patchField(field: CertificateFieldKey, patch: Partial<CertificateFieldLayout>) {
+    onLayoutChange((current) => ({
+      ...current,
+      [field]: clampLayout({ ...current[field], ...patch }),
+    }))
+  }
+
+  function patchSelectedFields(patch: Partial<CertificateFieldLayout>) {
+    onLayoutChange((current) => {
+      const next = { ...current }
+      selectedFields.forEach((field) => {
+        next[field] = clampLayout({ ...current[field], ...patch })
+      })
+      return next
+    })
+  }
+
+  function moveSelectedFields(deltaX: number, deltaY: number, draggedField?: CertificateFieldKey) {
+    onLayoutChange((current) => {
+      const fields = draggedField && !selectedFields.includes(draggedField) ? [draggedField] : selectedFields
+      const next = { ...current }
+      fields.forEach((field) => {
+        next[field] = clampLayout({
+          ...current[field],
+          x: current[field].x + deltaX,
+          y: current[field].y + deltaY,
+        })
+      })
+      return next
+    })
+  }
+
+  function resetSelectedFields() {
+    const defaults = copyDefaultCertificateLayout()
+    onLayoutChange((current) => {
+      const next = { ...current }
+      selectedFields.forEach((field) => {
+        next[field] = { ...defaults[field] }
+      })
+      return next
+    })
+  }
+
+  function toggleSenceLegend() {
+    onLayoutChange((current) => {
+      const nextVisible = current.senceLegend.visible === false
+      return {
+        ...current,
+        senceLegend: {
+          ...current.senceLegend,
+          visible: nextVisible,
+        },
+      }
+    })
+
+    if (certificateLayout.senceLegend.visible === false) {
+      setSelectedFields(['senceLegend'])
+    } else {
+      setSelectedFields((current) => {
+        const next = current.filter((field) => field !== 'senceLegend')
+        return next.length ? next : ['curso']
+      })
+    }
+  }
+
+  function resetAllLayout() {
+    onLayoutChange(copyDefaultCertificateLayout())
+    setSelectedFields(['curso'])
+  }
 
   return (
     <section className="preview-panel">
@@ -137,6 +451,11 @@ export function PreviewPanel({
               student={student}
               templateUrl={templateUrl}
               code={certificateCode}
+              layout={certificateLayout}
+              texts={certificateTexts}
+              selectedField={selectedFields}
+              onSelectField={selectField}
+              onFieldMove={(field, deltaX, deltaY) => moveSelectedFields(deltaX, deltaY, field)}
             />
           </FittedPreview>
         )}
@@ -151,6 +470,24 @@ export function PreviewPanel({
           </FittedPreview>
         )}
       </div>
+
+      {student && mode === 'png' && (
+        <LayoutEditor
+          selectedFields={selectedFields}
+          layout={certificateLayout}
+          texts={certificateTexts}
+          busy={busy}
+          onSelectField={(field) => selectField(field)}
+          onToggleField={toggleField}
+          onUpdateField={patchField}
+          onUpdateSelected={patchSelectedFields}
+          onTextChange={updateCertificateText}
+          onMoveSelected={(deltaX, deltaY) => moveSelectedFields(deltaX, deltaY)}
+          onResetSelected={resetSelectedFields}
+          onResetAll={resetAllLayout}
+          onToggleSenceLegend={toggleSenceLegend}
+        />
+      )}
 
       {student && (
         <div className="student-summary">

@@ -13,6 +13,12 @@ import type {
   Student,
   TemplateMode,
 } from '../types'
+import {
+  copyDefaultCertificateLayout,
+  copyDefaultCertificateTexts,
+  type CertificateLayout,
+  type CertificateTextContent,
+} from '../utils/certificateLayout'
 import { matchesStudent, studentName } from '../utils/students'
 
 const initialProgress: ProgressState = {
@@ -42,6 +48,8 @@ export function useCertificateWorkspace() {
   const [progress, setProgress] = useState<ProgressState>(initialProgress)
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState<Feedback | null>(null)
+  const [certificateLayout, setCertificateLayout] = useState<CertificateLayout>(copyDefaultCertificateLayout)
+  const [certificateTexts, setCertificateTexts] = useState<CertificateTextContent>(copyDefaultCertificateTexts)
 
   const currentSheet = sheetNames[sheetIndex]
   const activeStudents = mode === 'word'
@@ -159,7 +167,13 @@ export function useCertificateWorkspace() {
     try {
       const baseName = safeFileName(studentName(selectedStudent)) || 'certificado'
       if (mode === 'png') {
-        const pdf = await createPngCertificatePdf(selectedStudent, templateUrl, certificateCode)
+        const pdf = await createPngCertificatePdf(
+          selectedStudent,
+          templateUrl,
+          certificateCode,
+          certificateLayout,
+          certificateTexts,
+        )
         pdf.save(`certificado-${baseName}.pdf`)
       } else if (wordTemplate) {
         const blob = await wordTemplateToPdfBlob(wordTemplate, selectedStudent)
@@ -195,7 +209,7 @@ export function useCertificateWorkspace() {
         const fileName = safeFileName(name) || `alumno-${index + 1}`
         if (mode === 'png') {
           const code = `${prefix.trim().toUpperCase()}${index + 1}`
-          const pdf = await createPngCertificatePdf(student, templateUrl, code)
+          const pdf = await createPngCertificatePdf(student, templateUrl, code, certificateLayout, certificateTexts)
           zip.file(`${fileName}.pdf`, pdf.output('arraybuffer'))
         } else if (wordTemplate) {
           zip.file(`${fileName}.pdf`, await wordTemplateToPdfBlob(wordTemplate, student))
@@ -257,6 +271,8 @@ export function useCertificateWorkspace() {
     selectedStudent,
     selectedIndex,
     certificateCode,
+    certificateLayout,
+    certificateTexts,
     query,
     prefix,
     warningRecords,
@@ -279,6 +295,8 @@ export function useCertificateWorkspace() {
     setSelectedIndex,
     setQuery,
     setPrefix,
+    setCertificateLayout,
+    setCertificateTexts,
     continueWithIncompleteRecords,
     closeWarning,
     dismissFeedback: () => setFeedback(null),

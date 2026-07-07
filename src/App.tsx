@@ -75,7 +75,11 @@ export default function App() {
             templateUrl={workspace.templateUrl}
             wordTemplate={workspace.wordTemplate}
             certificateCode={workspace.certificateCode}
+            certificateLayout={workspace.certificateLayout}
+            certificateTexts={workspace.certificateTexts}
             busy={workspace.busy}
+            onLayoutChange={workspace.setCertificateLayout}
+            onTextChange={workspace.setCertificateTexts}
             onDownloadCurrent={() => void workspace.downloadCurrent()}
             onDownloadAll={() => void workspace.downloadAll()}
           />
