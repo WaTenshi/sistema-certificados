@@ -217,88 +217,104 @@ function LayoutEditor({
         </label>
       )}
 
-      <div className="layout-nudge" aria-label="Mover campo">
-        <button type="button" disabled={busy} title="Mover arriba" onClick={() => move(0, -1)}>
-          <Icon name="chevronUp" />
-        </button>
-        <button type="button" disabled={busy} title="Mover izquierda" onClick={() => move(-1, 0)}>
-          <Icon name="chevronLeft" />
-        </button>
-        <button type="button" disabled={busy} title="Mover derecha" onClick={() => move(1, 0)}>
-          <Icon name="chevronRight" />
-        </button>
-        <button type="button" disabled={busy} title="Mover abajo" onClick={() => move(0, 1)}>
-          <Icon name="chevronDown" />
-        </button>
-      </div>
+      <div className="layout-tool-row">
+        <div className="layout-tool-group compact">
+          <span className="layout-group-label">Mover</span>
+          <div className="layout-nudge" aria-label="Mover campo">
+            <button type="button" disabled={busy} title="Mover arriba" onClick={() => move(0, -1)}>
+              <Icon name="chevronUp" />
+            </button>
+            <button type="button" disabled={busy} title="Mover izquierda" onClick={() => move(-1, 0)}>
+              <Icon name="chevronLeft" />
+            </button>
+            <button type="button" disabled={busy} title="Mover derecha" onClick={() => move(1, 0)}>
+              <Icon name="chevronRight" />
+            </button>
+            <button type="button" disabled={busy} title="Mover abajo" onClick={() => move(0, 1)}>
+              <Icon name="chevronDown" />
+            </button>
+          </div>
+        </div>
 
-      <div className="layout-metrics">
-        <LayoutNumberInput
-          label="X"
-          min={0}
-          max={900}
-          value={fieldLayout.x}
-          disabled={multipleSelected}
-          onChange={(value) => updateSinglePosition({ x: value })}
-        />
-        <LayoutNumberInput
-          label="Y"
-          min={0}
-          max={630}
-          value={fieldLayout.y}
-          disabled={multipleSelected}
-          onChange={(value) => updateSinglePosition({ y: value })}
-        />
-        <LayoutNumberInput
-          label="Tamaño"
-          min={6}
-          max={72}
-          value={fontSizeValue}
-          onChange={(value) => updateSelectedMetric({ fontSize: value })}
-        />
-        <LayoutNumberInput
-          label="Ancho"
-          min={40}
-          max={900}
-          value={widthValue}
-          onChange={(value) => updateSelectedMetric({ width: value })}
-        />
-        <label className="layout-font-field">
-          <span>Fuente</span>
-          <select
-            value={fontFamilyValue || ''}
-            disabled={busy}
-            onChange={(event) => updateSelectedMetric({ fontFamily: event.target.value })}
-          >
-            {fontFamilyValue === '' && <option value="">Varias</option>}
-            {certificateFontFamilies.map((fontFamily) => (
-              <option key={fontFamily} value={fontFamily}>{fontFamily}</option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className={`layout-format-button ${allSelectedBold ? 'active' : ''}`}
-          disabled={busy}
-          title={allSelectedBold ? 'Quitar negrita' : 'Aplicar negrita'}
-          aria-pressed={allSelectedBold}
-          onClick={toggleBold}
-        >
-          B
-        </button>
-      </div>
+        <div className="layout-tool-group">
+          <span className="layout-group-label">Medidas</span>
+          <div className="layout-metrics">
+            <LayoutNumberInput
+              label="X"
+              min={0}
+              max={900}
+              value={fieldLayout.x}
+              disabled={multipleSelected}
+              onChange={(value) => updateSinglePosition({ x: value })}
+            />
+            <LayoutNumberInput
+              label="Y"
+              min={0}
+              max={630}
+              value={fieldLayout.y}
+              disabled={multipleSelected}
+              onChange={(value) => updateSinglePosition({ y: value })}
+            />
+            <LayoutNumberInput
+              label="Tamaño"
+              min={6}
+              max={72}
+              value={fontSizeValue}
+              onChange={(value) => updateSelectedMetric({ fontSize: value })}
+            />
+            <LayoutNumberInput
+              label="Ancho"
+              min={40}
+              max={900}
+              value={widthValue}
+              onChange={(value) => updateSelectedMetric({ width: value })}
+            />
+          </div>
+        </div>
 
-      <div className="layout-reset-actions">
-        <span>{selectedCount} seleccionado{selectedCount === 1 ? '' : 's'}</span>
-        <button type="button" disabled={busy} onClick={onToggleSenceLegend}>
-          {senceLegendVisible ? 'Quitar leyenda SENCE' : 'Añadir leyenda SENCE'}
-        </button>
-        <button type="button" disabled={busy} onClick={onResetSelected}>
-          Restablecer selección
-        </button>
-        <button type="button" disabled={busy} onClick={onResetAll}>
-          Restablecer todo
-        </button>
+        <div className="layout-tool-group">
+          <span className="layout-group-label">Texto</span>
+          <div className="layout-typography">
+            <label className="layout-font-field">
+              <span>Fuente</span>
+              <select
+                value={fontFamilyValue || ''}
+                disabled={busy}
+                onChange={(event) => updateSelectedMetric({ fontFamily: event.target.value })}
+              >
+                {fontFamilyValue === '' && <option value="">Varias</option>}
+                {certificateFontFamilies.map((fontFamily) => (
+                  <option key={fontFamily} value={fontFamily}>{fontFamily}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className={`layout-format-button ${allSelectedBold ? 'active' : ''}`}
+              disabled={busy}
+              title={allSelectedBold ? 'Quitar negrita' : 'Aplicar negrita'}
+              aria-pressed={allSelectedBold}
+              onClick={toggleBold}
+            >
+              B
+            </button>
+          </div>
+        </div>
+
+        <div className="layout-tool-group actions">
+          <span className="layout-group-label">{selectedCount} seleccionado{selectedCount === 1 ? '' : 's'}</span>
+          <div className="layout-reset-actions">
+            <button type="button" disabled={busy} onClick={onToggleSenceLegend}>
+              {senceLegendVisible ? 'Quitar leyenda SENCE' : 'Añadir leyenda SENCE'}
+            </button>
+            <button type="button" disabled={busy} onClick={onResetSelected}>
+              Restablecer selección
+            </button>
+            <button type="button" disabled={busy} onClick={onResetAll}>
+              Restablecer todo
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
