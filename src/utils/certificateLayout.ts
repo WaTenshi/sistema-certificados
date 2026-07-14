@@ -24,6 +24,7 @@ export interface CertificateFieldLayout {
   y: number
   width: number
   fontSize: number
+  fontFamily: string
   lineHeight: number
   align: CanvasTextAlign
   color: string
@@ -35,6 +36,17 @@ export interface CertificateFieldLayout {
 
 export type CertificateLayout = Record<CertificateFieldKey, CertificateFieldLayout>
 export type CertificateTextContent = Record<CertificateTextFieldKey, string>
+
+export const certificateFontFamilies = [
+  'Arial',
+  'Calibri',
+  'Times New Roman',
+  'Georgia',
+  'Verdana',
+  'Tahoma',
+  'Trebuchet MS',
+  'Courier New',
+] as const
 
 export const certificateFieldLabels: Record<CertificateFieldKey, string> = {
   registro: 'N° registro',
@@ -60,6 +72,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 59,
     width: 190,
     fontSize: 13,
+    fontFamily: 'Arial',
     lineHeight: 1.2,
     align: 'left',
     color: '#1d2430',
@@ -70,6 +83,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 265,
     width: 750,
     fontSize: 30,
+    fontFamily: 'Arial',
     lineHeight: 1.1,
     align: 'center',
     color: '#1f252e',
@@ -80,6 +94,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 305,
     width: 750,
     fontSize: 32,
+    fontFamily: 'Arial',
     lineHeight: 1.1,
     align: 'center',
     color: '#123d73',
@@ -90,6 +105,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 344,
     width: 620,
     fontSize: 15,
+    fontFamily: 'Arial',
     lineHeight: 1.15,
     align: 'center',
     color: '#0b3b67',
@@ -102,6 +118,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 390,
     width: 680,
     fontSize: 18,
+    fontFamily: 'Arial',
     lineHeight: 1.2,
     align: 'center',
     color: '#1d2430',
@@ -112,6 +129,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 438,
     width: 245,
     fontSize: 10,
+    fontFamily: 'Arial',
     lineHeight: 1.2,
     align: 'left',
     color: '#1d2430',
@@ -122,6 +140,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 459,
     width: 245,
     fontSize: 10,
+    fontFamily: 'Arial',
     lineHeight: 1.2,
     align: 'left',
     color: '#1d2430',
@@ -132,6 +151,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 438,
     width: 260,
     fontSize: 10,
+    fontFamily: 'Arial',
     lineHeight: 1.2,
     align: 'left',
     color: '#1d2430',
@@ -142,6 +162,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 462,
     width: 260,
     fontSize: 10,
+    fontFamily: 'Arial',
     lineHeight: 1.2,
     align: 'left',
     color: '#1d2430',
@@ -152,6 +173,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     y: 545,
     width: 480,
     fontSize: 4.2,
+    fontFamily: 'Arial',
     lineHeight: 1.15,
     align: 'center',
     color: '#123d73',

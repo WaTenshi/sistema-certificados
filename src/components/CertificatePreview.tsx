@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { renderFilledWordTemplate } from '../services/word'
 import type { Student } from '../types'
+import type { WordDataStyles } from '../utils/wordStyles'
 import {
   certificateFieldText,
   formatCertificateFieldText,
@@ -77,6 +78,7 @@ function CertificateField({
         width: layout.width,
         color: layout.color,
         fontSize: layout.fontSize,
+        fontFamily: layout.fontFamily,
         fontWeight: layout.weight,
         fontStyle: layout.fontStyle,
         lineHeight: layout.lineHeight,
@@ -139,11 +141,13 @@ export function ImageCertificatePreview({
 export function WordCertificatePreview({
   student,
   template,
+  dataStyles,
   current,
   total,
 }: {
   student: Student
   template: ArrayBuffer
+  dataStyles: WordDataStyles
   current: number
   total: number
 }) {
@@ -156,7 +160,7 @@ export function WordCertificatePreview({
     let cancelled = false
 
     setRenderError('')
-    void renderFilledWordTemplate(container, template, student).catch((error: unknown) => {
+    void renderFilledWordTemplate(container, template, student, dataStyles).catch((error: unknown) => {
       if (!cancelled) {
         setRenderError(error instanceof Error ? error.message : 'No se pudo mostrar la plantilla Word.')
       }
@@ -166,7 +170,7 @@ export function WordCertificatePreview({
       cancelled = true
       container.replaceChildren()
     }
-  }, [student, template])
+  }, [student, template, dataStyles])
 
   return (
     <div className="word-preview-shell">

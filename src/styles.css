@@ -50,7 +50,9 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -64,7 +66,9 @@ button:disabled {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   outline: 3px solid rgb(53 117 185 / 24%);
   outline-offset: 2px;
 }
@@ -1163,7 +1167,8 @@ input:focus-visible {
 
 .layout-select-field,
 .layout-number-field,
-.layout-text-field {
+.layout-text-field,
+.layout-font-field {
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1172,7 +1177,8 @@ input:focus-visible {
 
 .layout-select-field span,
 .layout-number-field span,
-.layout-text-field span {
+.layout-text-field span,
+.layout-font-field span {
   color: var(--ink-500);
   font-size: 8px;
   font-weight: 800;
@@ -1182,7 +1188,8 @@ input:focus-visible {
 
 .layout-select-field select,
 .layout-number-field input,
-.layout-text-field textarea {
+.layout-text-field textarea,
+.layout-font-field select {
   min-width: 0;
   color: var(--ink-900);
   background: #fff;
@@ -1193,11 +1200,13 @@ input:focus-visible {
 }
 
 .layout-select-field select,
-.layout-number-field input {
+.layout-number-field input,
+.layout-font-field select {
   height: 30px;
 }
 
-.layout-select-field select {
+.layout-select-field select,
+.layout-font-field select {
   padding: 0 8px;
 }
 
@@ -1308,6 +1317,41 @@ input:focus-visible {
   gap: 8px;
 }
 
+.layout-font-field select {
+  width: 140px;
+  font-weight: 700;
+}
+
+.layout-format-button {
+  width: 32px;
+  height: 30px;
+  align-self: end;
+  display: grid;
+  place-items: center;
+  color: var(--navy-800);
+  background: #fff;
+  border: 1px solid #d5dee8;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.layout-format-button.active {
+  color: #fff;
+  background: var(--blue-700);
+  border-color: var(--blue-700);
+}
+
+.layout-format-button:hover:not(:disabled) {
+  background: var(--blue-50);
+  border-color: #aec4dd;
+}
+
+.layout-format-button.active:hover:not(:disabled) {
+  background: var(--navy-800);
+}
+
 .layout-reset-actions {
   display: flex;
   align-items: center;
@@ -1330,6 +1374,35 @@ input:focus-visible {
   border-radius: 8px;
   font-size: 10px;
   font-weight: 750;
+}
+
+.word-style-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f9fbfe;
+  border-top: 1px solid var(--line);
+}
+
+.word-style-editor .layout-select-field select {
+  width: 180px;
+}
+
+.word-style-reset {
+  min-height: 30px;
+  padding: 6px 9px;
+  color: var(--navy-800);
+  background: #fff;
+  border: 1px solid #d5dee8;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.word-style-reset:hover:not(:disabled) {
+  background: var(--blue-50);
+  border-color: #aec4dd;
 }
 
 .word-preview-shell {
@@ -1664,7 +1737,8 @@ input:focus-visible {
   }
 
   .layout-metrics,
-  .layout-reset-actions {
+  .layout-reset-actions,
+  .word-style-editor {
     grid-column: 1 / -1;
   }
 }
@@ -1873,11 +1947,13 @@ input:focus-visible {
   }
 
   .layout-metrics,
-  .layout-reset-actions {
+  .layout-reset-actions,
+  .word-style-editor {
     flex-wrap: wrap;
   }
 
-  .layout-reset-actions button {
+  .layout-reset-actions button,
+  .word-style-reset {
     flex: 1 1 145px;
   }
 

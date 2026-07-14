@@ -51,6 +51,14 @@ function wrapText(
   context.fillText(line.trim(), x, y)
 }
 
+function canvasFontFamily(fontFamily: string): string {
+  return fontFamily.includes(' ') ? `"${fontFamily}"` : fontFamily
+}
+
+function canvasFont(layout: CertificateFieldLayout, fontSize: number, bold = layout.weight === 'bold'): string {
+  return `${layout.fontStyle === 'italic' ? 'italic ' : ''}${bold ? 'bold ' : ''}${fontSize}px ${canvasFontFamily(layout.fontFamily)}`
+}
+
 function drawDetail(
   context: CanvasRenderingContext2D,
   field: Parameters<typeof certificateDetail>[1],
@@ -66,13 +74,13 @@ function drawDetail(
 
   context.fillStyle = layout.color
   context.textAlign = layout.align
-  context.font = `${layout.fontStyle === 'italic' ? 'italic ' : ''}bold ${fontSize}px Arial`
+  context.font = canvasFont(layout, fontSize, true)
   context.fillText(`${detail.label.toUpperCase()}:`, x, y)
 
   if (!detail.value) return
 
   const labelWidth = context.measureText(`${detail.label.toUpperCase()}: `).width
-  context.font = `${layout.fontStyle === 'italic' ? 'italic ' : ''}${fontSize}px Arial`
+  context.font = canvasFont(layout, fontSize)
   context.fillText(detail.value.toUpperCase(), x + labelWidth, y)
 }
 
@@ -93,7 +101,7 @@ function drawField(
 
   const fontSize = Math.round(layout.fontSize * scaleX)
   context.fillStyle = layout.color
-  context.font = `${layout.fontStyle === 'italic' ? 'italic ' : ''}${layout.weight === 'bold' ? 'bold ' : ''}${fontSize}px Arial`
+  context.font = canvasFont(layout, fontSize)
   context.textAlign = layout.align
   wrapText(
     context,

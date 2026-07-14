@@ -20,6 +20,7 @@ import {
   type CertificateTextContent,
 } from '../utils/certificateLayout'
 import { matchesStudent, studentName } from '../utils/students'
+import { copyDefaultWordDataStyles, type WordDataStyles } from '../utils/wordStyles'
 
 const initialProgress: ProgressState = {
   open: false,
@@ -50,6 +51,7 @@ export function useCertificateWorkspace() {
   const [feedback, setFeedback] = useState<Feedback | null>(null)
   const [certificateLayout, setCertificateLayout] = useState<CertificateLayout>(copyDefaultCertificateLayout)
   const [certificateTexts, setCertificateTexts] = useState<CertificateTextContent>(copyDefaultCertificateTexts)
+  const [wordDataStyles, setWordDataStyles] = useState<WordDataStyles>(copyDefaultWordDataStyles)
 
   const currentSheet = sheetNames[sheetIndex]
   const activeStudents = mode === 'word'
@@ -176,7 +178,7 @@ export function useCertificateWorkspace() {
         )
         pdf.save(`certificado-${baseName}.pdf`)
       } else if (wordTemplate) {
-        const blob = await wordTemplateToPdfBlob(wordTemplate, selectedStudent)
+        const blob = await wordTemplateToPdfBlob(wordTemplate, selectedStudent, wordDataStyles)
         saveAs(blob, `certificado-${baseName}.pdf`)
       }
       notify('Certificado generado correctamente.', 'success')
@@ -212,7 +214,7 @@ export function useCertificateWorkspace() {
           const pdf = await createPngCertificatePdf(student, templateUrl, code, certificateLayout, certificateTexts)
           zip.file(`${fileName}.pdf`, pdf.output('arraybuffer'))
         } else if (wordTemplate) {
-          zip.file(`${fileName}.pdf`, await wordTemplateToPdfBlob(wordTemplate, student))
+          zip.file(`${fileName}.pdf`, await wordTemplateToPdfBlob(wordTemplate, student, wordDataStyles))
         }
         setProgress((current) => ({ ...current, processed: index + 1 }))
       }
@@ -273,6 +275,7 @@ export function useCertificateWorkspace() {
     certificateCode,
     certificateLayout,
     certificateTexts,
+    wordDataStyles,
     query,
     prefix,
     warningRecords,
@@ -297,6 +300,7 @@ export function useCertificateWorkspace() {
     setPrefix,
     setCertificateLayout,
     setCertificateTexts,
+    setWordDataStyles,
     continueWithIncompleteRecords,
     closeWarning,
     dismissFeedback: () => setFeedback(null),

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetSta
 import type { Student, TemplateMode } from '../types'
 import {
   certificateFieldLabels,
+  certificateFontFamilies,
   clampLayout,
   copyDefaultCertificateLayout,
   type CertificateFieldKey,
@@ -11,6 +12,13 @@ import {
   type CertificateTextFieldKey,
 } from '../utils/certificateLayout'
 import { studentName } from '../utils/students'
+import {
+  copyDefaultWordDataStyles,
+  wordDataFieldLabels,
+  wordFontFamilies,
+  type WordDataFieldKey,
+  type WordDataStyles,
+} from '../utils/wordStyles'
 import { ImageCertificatePreview, WordCertificatePreview } from './CertificatePreview'
 import { Icon } from './Icon'
 
@@ -141,7 +149,7 @@ function LayoutEditor({
   const availableFields = editableFields.filter((field) => layout[field].visible !== false)
   const senceLegendVisible = layout.senceLegend.visible !== false
 
-  function sharedValue(key: 'fontSize' | 'width') {
+  function sharedValue<K extends 'fontSize' | 'width' | 'fontFamily' | 'weight'>(key: K): CertificateFieldLayout[K] | '' {
     const firstValue = layout[selectedFields[0] ?? activeField][key]
     return selectedFields.every((field) => layout[field][key] === firstValue) ? firstValue : ''
   }
@@ -156,9 +164,16 @@ function LayoutEditor({
 
   const fontSizeValue = sharedValue('fontSize')
   const widthValue = sharedValue('width')
+  const fontFamilyValue = sharedValue('fontFamily')
+  const weightValue = sharedValue('weight')
+  const allSelectedBold = weightValue === 'bold'
 
   function move(deltaX: number, deltaY: number) {
     onMoveSelected(deltaX, deltaY)
+  }
+
+  function toggleBold() {
+    updateSelectedMetric({ weight: allSelectedBold ? 'normal' : 'bold' })
   }
 
   return (
@@ -248,6 +263,29 @@ function LayoutEditor({
           value={widthValue}
           onChange={(value) => updateSelectedMetric({ width: value })}
         />
+        <label className="layout-font-field">
+          <span>Fuente</span>
+          <select
+            value={fontFamilyValue || ''}
+            disabled={busy}
+            onChange={(event) => updateSelectedMetric({ fontFamily: event.target.value })}
+          >
+            {fontFamilyValue === '' && <option value="">Varias</option>}
+            {certificateFontFamilies.map((fontFamily) => (
+              <option key={fontFamily} value={fontFamily}>{fontFamily}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className={`layout-format-button ${allSelectedBold ? 'active' : ''}`}
+          disabled={busy}
+          title={allSelectedBold ? 'Quitar negrita' : 'Aplicar negrita'}
+          aria-pressed={allSelectedBold}
+          onClick={toggleBold}
+        >
+          B
+        </button>
       </div>
 
       <div className="layout-reset-actions">
@@ -266,6 +304,78 @@ function LayoutEditor({
   )
 }
 
+const wordDataFields = Object.keys(wordDataFieldLabels) as WordDataFieldKey[]
+
+function WordStyleEditor({
+  selectedField,
+  styles,
+  busy,
+  onSelectField,
+  onChange,
+  onReset,
+}: {
+  selectedField: WordDataFieldKey
+  styles: WordDataStyles
+  busy: boolean
+  onSelectField: (field: WordDataFieldKey) => void
+  onChange: Dispatch<SetStateAction<WordDataStyles>>
+  onReset: () => void
+}) {
+  const activeStyle = styles[selectedField]
+
+  function patchActiveStyle(patch: Partial<WordDataStyles[WordDataFieldKey]>) {
+    onChange((current) => ({
+      ...current,
+      [selectedField]: {
+        ...current[selectedField],
+        ...patch,
+      },
+    }))
+  }
+
+  return (
+    <div className="word-style-editor">
+      <label className="layout-select-field">
+        <span>Dato</span>
+        <select
+          value={selectedField}
+          disabled={busy}
+          onChange={(event) => onSelectField(event.target.value as WordDataFieldKey)}
+        >
+          {wordDataFields.map((field) => (
+            <option key={field} value={field}>{wordDataFieldLabels[field]}</option>
+          ))}
+        </select>
+      </label>
+      <label className="layout-font-field">
+        <span>Fuente</span>
+        <select
+          value={activeStyle.fontFamily}
+          disabled={busy}
+          onChange={(event) => patchActiveStyle({ fontFamily: event.target.value })}
+        >
+          {wordFontFamilies.map((fontFamily) => (
+            <option key={fontFamily} value={fontFamily}>{fontFamily}</option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        className={`layout-format-button ${activeStyle.bold ? 'active' : ''}`}
+        disabled={busy}
+        title={activeStyle.bold ? 'Quitar negrita' : 'Aplicar negrita'}
+        aria-pressed={activeStyle.bold}
+        onClick={() => patchActiveStyle({ bold: !activeStyle.bold })}
+      >
+        B
+      </button>
+      <button type="button" className="word-style-reset" disabled={busy} onClick={onReset}>
+        Restablecer estilos
+      </button>
+    </div>
+  )
+}
+
 export function PreviewPanel({
   mode,
   student,
@@ -276,9 +386,11 @@ export function PreviewPanel({
   certificateCode,
   certificateLayout,
   certificateTexts,
+  wordDataStyles,
   busy,
   onLayoutChange,
   onTextChange,
+  onWordDataStylesChange,
   onDownloadCurrent,
   onDownloadAll,
 }: {
@@ -291,14 +403,17 @@ export function PreviewPanel({
   certificateCode: string
   certificateLayout: CertificateLayout
   certificateTexts: CertificateTextContent
+  wordDataStyles: WordDataStyles
   busy: boolean
   onLayoutChange: Dispatch<SetStateAction<CertificateLayout>>
   onTextChange: Dispatch<SetStateAction<CertificateTextContent>>
+  onWordDataStylesChange: Dispatch<SetStateAction<WordDataStyles>>
   onDownloadCurrent: () => void
   onDownloadAll: () => void
 }) {
   const [zoom, setZoom] = useState(1)
   const [selectedFields, setSelectedFields] = useState<CertificateFieldKey[]>(['curso'])
+  const [selectedWordField, setSelectedWordField] = useState<WordDataFieldKey>('nombre')
   const zoomPercentage = Math.round(zoom * 100)
 
   function selectField(field: CertificateFieldKey, additive = false) {
@@ -464,6 +579,7 @@ export function PreviewPanel({
             <WordCertificatePreview
               student={student}
               template={wordTemplate}
+              dataStyles={wordDataStyles}
               current={selectedIndex + 1}
               total={total}
             />
@@ -486,6 +602,17 @@ export function PreviewPanel({
           onResetSelected={resetSelectedFields}
           onResetAll={resetAllLayout}
           onToggleSenceLegend={toggleSenceLegend}
+        />
+      )}
+
+      {student && mode === 'word' && (
+        <WordStyleEditor
+          selectedField={selectedWordField}
+          styles={wordDataStyles}
+          busy={busy}
+          onSelectField={setSelectedWordField}
+          onChange={onWordDataStylesChange}
+          onReset={() => onWordDataStylesChange(copyDefaultWordDataStyles())}
         />
       )}
 
