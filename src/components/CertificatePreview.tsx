@@ -142,12 +142,18 @@ export function WordCertificatePreview({
   student,
   template,
   dataStyles,
+  includeSenceCode,
+  senceCodeOverride,
+  evaluationLabel,
   current,
   total,
 }: {
   student: Student
   template: ArrayBuffer
   dataStyles: WordDataStyles
+  includeSenceCode: boolean
+  senceCodeOverride: string
+  evaluationLabel: string
   current: number
   total: number
 }) {
@@ -160,7 +166,15 @@ export function WordCertificatePreview({
     let cancelled = false
 
     setRenderError('')
-    void renderFilledWordTemplate(container, template, student, dataStyles).catch((error: unknown) => {
+    void renderFilledWordTemplate(
+      container,
+      template,
+      student,
+      dataStyles,
+      includeSenceCode,
+      senceCodeOverride,
+      evaluationLabel,
+    ).catch((error: unknown) => {
       if (!cancelled) {
         setRenderError(error instanceof Error ? error.message : 'No se pudo mostrar la plantilla Word.')
       }
@@ -170,7 +184,7 @@ export function WordCertificatePreview({
       cancelled = true
       container.replaceChildren()
     }
-  }, [student, template, dataStyles])
+  }, [student, template, dataStyles, includeSenceCode, senceCodeOverride, evaluationLabel])
 
   return (
     <div className="word-preview-shell">

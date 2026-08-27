@@ -1423,7 +1423,7 @@ textarea:focus-visible {
 
 .word-style-editor {
   display: grid;
-  grid-template-columns: minmax(170px, 220px) minmax(150px, 180px) auto minmax(150px, auto);
+  grid-template-columns: minmax(150px, 1fr) minmax(140px, 0.9fr) auto minmax(220px, 1.25fr) minmax(145px, auto);
   align-items: end;
   gap: 8px;
   padding: 8px 12px;
@@ -1437,6 +1437,108 @@ textarea:focus-visible {
 
 .word-style-editor .layout-font-field select {
   width: 100%;
+}
+
+.word-sence-toggle {
+  min-height: 42px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  color: var(--ink-700);
+  background: #fff;
+  border: 1px solid #d5dee8;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.word-sence-toggle.checked {
+  color: var(--blue-700);
+  background: var(--blue-50);
+  border-color: #b9d4f1;
+}
+
+.word-sence-toggle input {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--blue-700);
+}
+
+.word-sence-toggle span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.word-sence-toggle strong,
+.word-sence-toggle small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.word-sence-toggle strong {
+  font-size: 10px;
+}
+
+.word-sence-toggle small {
+  color: var(--ink-500);
+  font-size: 8px;
+}
+
+.word-sence-manual-field,
+.word-evaluation-label-field {
+  min-width: 0;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(150px, 190px) minmax(180px, 320px) minmax(220px, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  background: #fff;
+  border: 1px solid #e1e8f0;
+  border-radius: 9px;
+}
+
+.word-sence-manual-field > span,
+.word-evaluation-label-field > span {
+  color: var(--ink-500);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.word-sence-manual-field input,
+.word-evaluation-label-field input {
+  width: 100%;
+  height: 30px;
+  min-width: 0;
+  padding: 0 9px;
+  color: var(--ink-900);
+  background: #fff;
+  border: 1px solid #d5dee8;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.word-sence-manual-field input:disabled,
+.word-evaluation-label-field input:disabled {
+  color: var(--ink-500);
+  background: var(--surface-soft);
+}
+
+.word-sence-manual-field small,
+.word-evaluation-label-field small {
+  min-width: 0;
+  color: var(--ink-500);
+  font-size: 8px;
+  line-height: 1.35;
 }
 
 .word-style-reset {
@@ -1791,7 +1893,11 @@ textarea:focus-visible {
   }
 
   .word-style-editor {
-    grid-template-columns: minmax(170px, 1fr) minmax(150px, 1fr) auto minmax(150px, auto);
+    grid-template-columns: minmax(150px, 1fr) minmax(140px, 1fr) auto minmax(220px, 1.2fr);
+  }
+
+  .word-style-reset {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1876,11 +1982,22 @@ textarea:focus-visible {
   }
 
   .word-style-editor {
-    grid-template-columns: minmax(170px, 1fr) minmax(150px, 1fr) auto;
+    grid-template-columns: minmax(150px, 1fr) minmax(140px, 1fr) auto;
   }
 
+  .word-sence-toggle,
   .word-style-reset {
     grid-column: 1 / -1;
+  }
+
+  .word-sence-manual-field,
+  .word-evaluation-label-field {
+    grid-template-columns: minmax(145px, 190px) minmax(180px, 1fr);
+  }
+
+  .word-sence-manual-field small,
+  .word-evaluation-label-field small {
+    grid-column: 2;
   }
 }
 
@@ -2018,6 +2135,16 @@ textarea:focus-visible {
   .layout-tool-row,
   .word-style-editor {
     grid-template-columns: 1fr;
+  }
+
+  .word-sence-manual-field,
+  .word-evaluation-label-field {
+    grid-template-columns: 1fr;
+  }
+
+  .word-sence-manual-field small,
+  .word-evaluation-label-field small {
+    grid-column: auto;
   }
 
   .layout-tool-group.compact {

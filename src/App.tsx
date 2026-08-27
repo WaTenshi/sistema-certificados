@@ -78,10 +78,16 @@ export default function App() {
             certificateLayout={workspace.certificateLayout}
             certificateTexts={workspace.certificateTexts}
             wordDataStyles={workspace.wordDataStyles}
+            wordSenceCodeEnabled={workspace.wordSenceCodeEnabled}
+            wordSenceCodeManual={workspace.wordSenceCodeManual}
+            wordEvaluationLabel={workspace.wordEvaluationLabel}
             busy={workspace.busy}
             onLayoutChange={workspace.setCertificateLayout}
             onTextChange={workspace.setCertificateTexts}
             onWordDataStylesChange={workspace.setWordDataStyles}
+            onWordSenceCodeChange={workspace.setWordSenceCodeEnabled}
+            onWordSenceCodeManualChange={workspace.setWordSenceCodeManual}
+            onWordEvaluationLabelChange={workspace.setWordEvaluationLabel}
             onDownloadCurrent={() => void workspace.downloadCurrent()}
             onDownloadAll={() => void workspace.downloadAll()}
           />

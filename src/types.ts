@@ -14,6 +14,7 @@ export interface Student {
   asistencia?: string
   evaluacion?: string
   curso: string
+  codigoSence?: string
   duracion: string
   fechaInicio: string
   fechaTermino: string

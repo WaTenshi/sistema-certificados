@@ -103,6 +103,7 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
     const sheet = workbook.Sheets[sheetName]
     const rows = XLSX.utils.sheet_to_json<RawRow>(sheet, { header: 1, defval: '' })
     let curso = ''
+    let codigoSence = ''
     let duracion = ''
     let fechaInicio = ''
     let fechaTermino = ''
@@ -112,6 +113,7 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
       const label = text(rows[index]?.[1]).toLowerCase()
       const value = text(rows[index]?.[2])
       if (label.includes('curso')) curso = value
+      else if (label.includes('sence')) codigoSence = value
       else if (label.includes('duraci')) duracion = value
       else if (label.includes('inicio')) fechaInicio = value
       else if (label.includes('termino') || label.includes('término')) fechaTermino = value
@@ -164,6 +166,7 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
         correo: text(row[columns.correo]),
         telefono: columns.telefono >= 0 ? text(row[columns.telefono]) : '',
         curso,
+        codigoSence,
         duracion,
         fechaInicio,
         fechaTermino,

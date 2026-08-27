@@ -52,6 +52,9 @@ export function useCertificateWorkspace() {
   const [certificateLayout, setCertificateLayout] = useState<CertificateLayout>(copyDefaultCertificateLayout)
   const [certificateTexts, setCertificateTexts] = useState<CertificateTextContent>(copyDefaultCertificateTexts)
   const [wordDataStyles, setWordDataStyles] = useState<WordDataStyles>(copyDefaultWordDataStyles)
+  const [wordSenceCodeEnabled, setWordSenceCodeEnabled] = useState(false)
+  const [wordSenceCodeManual, setWordSenceCodeManual] = useState('')
+  const [wordEvaluationLabel, setWordEvaluationLabel] = useState('Evaluación')
 
   const currentSheet = sheetNames[sheetIndex]
   const activeStudents = mode === 'word'
@@ -178,7 +181,14 @@ export function useCertificateWorkspace() {
         )
         pdf.save(`certificado-${baseName}.pdf`)
       } else if (wordTemplate) {
-        const blob = await wordTemplateToPdfBlob(wordTemplate, selectedStudent, wordDataStyles)
+        const blob = await wordTemplateToPdfBlob(
+          wordTemplate,
+          selectedStudent,
+          wordDataStyles,
+          wordSenceCodeEnabled,
+          wordSenceCodeManual,
+          wordEvaluationLabel,
+        )
         saveAs(blob, `certificado-${baseName}.pdf`)
       }
       notify('Certificado generado correctamente.', 'success')
@@ -214,7 +224,17 @@ export function useCertificateWorkspace() {
           const pdf = await createPngCertificatePdf(student, templateUrl, code, certificateLayout, certificateTexts)
           zip.file(`${fileName}.pdf`, pdf.output('arraybuffer'))
         } else if (wordTemplate) {
-          zip.file(`${fileName}.pdf`, await wordTemplateToPdfBlob(wordTemplate, student, wordDataStyles))
+          zip.file(
+            `${fileName}.pdf`,
+            await wordTemplateToPdfBlob(
+              wordTemplate,
+              student,
+              wordDataStyles,
+              wordSenceCodeEnabled,
+              wordSenceCodeManual,
+              wordEvaluationLabel,
+            ),
+          )
         }
         setProgress((current) => ({ ...current, processed: index + 1 }))
       }
@@ -237,6 +257,7 @@ export function useCertificateWorkspace() {
     if (!window.confirm('¿Limpiar los alumnos cargados? Las plantillas se mantendrán.')) return
     clearLoadedData()
     setPrefix('')
+    setWordSenceCodeManual('')
     notify('Datos limpiados. La plantilla se mantuvo.', 'success')
   }
 
@@ -276,6 +297,9 @@ export function useCertificateWorkspace() {
     certificateLayout,
     certificateTexts,
     wordDataStyles,
+    wordSenceCodeEnabled,
+    wordSenceCodeManual,
+    wordEvaluationLabel,
     query,
     prefix,
     warningRecords,
@@ -301,6 +325,9 @@ export function useCertificateWorkspace() {
     setCertificateLayout,
     setCertificateTexts,
     setWordDataStyles,
+    setWordSenceCodeEnabled,
+    setWordSenceCodeManual,
+    setWordEvaluationLabel,
     continueWithIncompleteRecords,
     closeWarning,
     dismissFeedback: () => setFeedback(null),

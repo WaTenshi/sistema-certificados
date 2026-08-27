@@ -65,6 +65,35 @@ function injectAfterParagraphLabel(xml: string, labels: string[], value: string,
   })
 }
 
+function createSenceCodeParagraph(sourceParagraph: string, value: string, style: WordDataFieldStyle): string {
+  const paragraphProperties = /<w:pPr(?:\s[^>]*)?>[\s\S]*?<\/w:pPr>/.exec(sourceParagraph)?.[0] ?? ''
+  const sourceRuns = Array.from(sourceParagraph.matchAll(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g))
+  const labelRun = sourceRuns.find((match) => normalizeText(textFromXml(match[0])).length > 0)?.[0]
+  const labelProperties = labelRun
+    ? /<w:rPr(?:\s[^>]*)?>[\s\S]*?<\/w:rPr>/.exec(labelRun)?.[0] ?? ''
+    : ''
+  const label = `<w:r>${labelProperties}<w:t xml:space="preserve">Código SENCE:</w:t></w:r>`
+
+  return `<w:p>${paragraphProperties}${label}${value ? createDataRun(value, true, style) : ''}</w:p>`
+}
+
+function insertSenceCodeBelowCourse(
+  xml: string,
+  value: string,
+  style: WordDataFieldStyle,
+): string {
+  let inserted = false
+
+  return xml.replace(/<w:p[\s\S]*?<\/w:p>/g, (paragraph) => {
+    if (inserted) return paragraph
+    const paragraphText = normalizeText(textFromXml(paragraph))
+    if (!paragraphText.startsWith(normalizeText('Nombre del curso'))) return paragraph
+
+    inserted = true
+    return `${paragraph}${createSenceCodeParagraph(paragraph, value, style)}`
+  })
+}
+
 function injectInParagraphId(xml: string, paragraphId: string, value: string, style: WordDataFieldStyle): string {
   if (!value) return xml
   const position = xml.indexOf(`w14:paraId="${paragraphId}"`)
@@ -100,6 +129,24 @@ function replaceCellText(cell: string, value: string, style: WordDataFieldStyle)
   return cell.slice(0, match.index) + updatedParagraph + cell.slice(match.index + paragraph.length)
 }
 
+function replaceCellTextPreservingStyle(cell: string, value: string): string {
+  const match = /<w:p[\s\S]*?<\/w:p>/.exec(cell)
+  if (!match) return cell
+
+  const paragraph = match[0]
+  const firstRun = /<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/.exec(paragraph)?.[0]
+  const runProperties = firstRun
+    ? /<w:rPr(?:\s[^>]*)?>[\s\S]*?<\/w:rPr>/.exec(firstRun)?.[0] ?? ''
+    : ''
+  const withoutRuns = paragraph.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g, '')
+  const insertAt = withoutRuns.lastIndexOf('</w:p>')
+  if (insertAt < 0) return cell
+
+  const replacementRun = `<w:r>${runProperties}<w:t xml:space="preserve">${escapeXml(value)}</w:t></w:r>`
+  const updatedParagraph = `${withoutRuns.slice(0, insertAt)}${replacementRun}${withoutRuns.slice(insertAt)}`
+  return cell.slice(0, match.index) + updatedParagraph + cell.slice(match.index + paragraph.length)
+}
+
 function tableRows(table: string): string[] {
   return Array.from(table.matchAll(/<w:tr[\s\S]*?<\/w:tr>/g)).map((match) => match[0])
 }
@@ -108,7 +155,12 @@ function rowCells(row: string): string[] {
   return Array.from(row.matchAll(/<w:tc[\s\S]*?<\/w:tc>/g)).map((match) => match[0])
 }
 
-function fillParticipantTable(xml: string, student: Student, styles: WordDataStyles): string {
+function fillParticipantTable(
+  xml: string,
+  student: Student,
+  styles: WordDataStyles,
+  evaluationLabel: string,
+): string {
   return xml.replace(/<w:tbl[\s\S]*?<\/w:tbl>/g, (table) => {
     const rows = tableRows(table)
     const headerRowIndex = rows.findIndex((row) => {
@@ -124,7 +176,8 @@ function fillParticipantTable(xml: string, student: Student, styles: WordDataSty
 
     if (headerRowIndex < 0 || !rows[headerRowIndex + 1]) return table
 
-    const headerCells = rowCells(rows[headerRowIndex]).map((cell) => normalizeText(textFromXml(cell)))
+    const originalHeaderCells = rowCells(rows[headerRowIndex])
+    const headerCells = originalHeaderCells.map((cell) => normalizeText(textFromXml(cell)))
     const valueByHeader: Record<string, { field: WordDataFieldKey, value: string }> = {
       rut: { field: 'rut', value: student.rut },
       nombre: { field: 'nombre', value: `${student.nombres} ${student.apellidos}` },
@@ -142,7 +195,15 @@ function fillParticipantTable(xml: string, student: Student, styles: WordDataSty
       dataRow = dataRow.replace(cell, replaceCellText(cell, data.value, styles[data.field]))
     })
 
-    return table.replace(rows[headerRowIndex + 1], dataRow)
+    let headerRow = rows[headerRowIndex]
+    originalHeaderCells.forEach((cell, index) => {
+      if (headerCells[index] !== 'evaluacion') return
+      headerRow = headerRow.replace(cell, replaceCellTextPreservingStyle(cell, evaluationLabel))
+    })
+
+    return table
+      .replace(rows[headerRowIndex + 1], dataRow)
+      .replace(rows[headerRowIndex], headerRow)
   })
 }
 
@@ -150,6 +211,9 @@ export async function fillWordTemplate(
   template: ArrayBuffer,
   student: Student,
   dataStyles: WordDataStyles = copyDefaultWordDataStyles(),
+  includeSenceCode = false,
+  senceCodeOverride = '',
+  evaluationLabel = 'Evaluación',
 ): Promise<ArrayBuffer> {
   const zip = await JSZip.loadAsync(template)
   const documentFile = zip.file('word/document.xml')
@@ -157,6 +221,10 @@ export async function fillWordTemplate(
 
   let xml = await documentFile.async('string')
   xml = injectAfterParagraphLabel(xml, ['Nombre del curso'], student.curso, dataStyles.curso)
+  if (includeSenceCode) {
+    const senceCode = senceCodeOverride.trim() || student.codigoSence || ''
+    xml = insertSenceCodeBelowCourse(xml, senceCode, dataStyles.codigoSence)
+  }
   xml = injectAfterParagraphLabel(xml, ['Duración'], student.duracion, dataStyles.duracion)
   xml = injectAfterParagraphLabel(xml, ['Modalidad'], student.modalidad, dataStyles.modalidad)
   xml = injectAfterParagraphLabel(xml, ['Fecha de Inicio'], student.fechaInicio, dataStyles.fechaInicio)
@@ -166,7 +234,7 @@ export async function fillWordTemplate(
   xml = injectInParagraphId(xml, '77EE5041', student.nota ?? '', dataStyles.nota)
   xml = injectInParagraphId(xml, '0C89B983', student.asistencia ?? '', dataStyles.asistencia)
   xml = injectInParagraphId(xml, '1A9E9FA6', student.evaluacion ?? '', dataStyles.evaluacion)
-  xml = fillParticipantTable(xml, student, dataStyles)
+  xml = fillParticipantTable(xml, student, dataStyles, evaluationLabel.trim() || 'Evaluación')
 
   zip.file('word/document.xml', xml)
   return zip.generateAsync({ type: 'arraybuffer' })
@@ -201,9 +269,19 @@ export async function renderFilledWordTemplate(
   template: ArrayBuffer,
   student: Student,
   dataStyles?: WordDataStyles,
+  includeSenceCode = false,
+  senceCodeOverride = '',
+  evaluationLabel = 'Evaluación',
 ): Promise<void> {
   container.replaceChildren()
-  const documentBuffer = await fillWordTemplate(template, student, dataStyles)
+  const documentBuffer = await fillWordTemplate(
+    template,
+    student,
+    dataStyles,
+    includeSenceCode,
+    senceCodeOverride,
+    evaluationLabel,
+  )
   await renderAsync(documentBuffer, container, container, renderOptions)
   await waitForImages(container)
   await document.fonts?.ready
@@ -213,6 +291,9 @@ export async function wordTemplateToPdfBlob(
   template: ArrayBuffer,
   student: Student,
   dataStyles?: WordDataStyles,
+  includeSenceCode = false,
+  senceCodeOverride = '',
+  evaluationLabel = 'Evaluación',
 ): Promise<Blob> {
   const renderHost = document.createElement('div')
   renderHost.className = 'word-pdf-render-host'
@@ -221,7 +302,15 @@ export async function wordTemplateToPdfBlob(
   document.body.appendChild(renderHost)
 
   try {
-    await renderFilledWordTemplate(renderHost, template, student, dataStyles)
+    await renderFilledWordTemplate(
+      renderHost,
+      template,
+      student,
+      dataStyles,
+      includeSenceCode,
+      senceCodeOverride,
+      evaluationLabel,
+    )
     const pages = Array.from(renderHost.querySelectorAll<HTMLElement>('section.docx'))
     if (!pages.length) throw new Error('No se pudieron detectar las páginas de la plantilla Word.')
 

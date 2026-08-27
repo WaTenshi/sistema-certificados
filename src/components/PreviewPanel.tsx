@@ -325,16 +325,28 @@ const wordDataFields = Object.keys(wordDataFieldLabels) as WordDataFieldKey[]
 function WordStyleEditor({
   selectedField,
   styles,
+  senceCodeEnabled,
+  senceCodeManual,
+  evaluationLabel,
   busy,
   onSelectField,
   onChange,
+  onSenceCodeChange,
+  onSenceCodeManualChange,
+  onEvaluationLabelChange,
   onReset,
 }: {
   selectedField: WordDataFieldKey
   styles: WordDataStyles
+  senceCodeEnabled: boolean
+  senceCodeManual: string
+  evaluationLabel: string
   busy: boolean
   onSelectField: (field: WordDataFieldKey) => void
   onChange: Dispatch<SetStateAction<WordDataStyles>>
+  onSenceCodeChange: (enabled: boolean) => void
+  onSenceCodeManualChange: (value: string) => void
+  onEvaluationLabelChange: (value: string) => void
   onReset: () => void
 }) {
   const activeStyle = styles[selectedField]
@@ -385,9 +397,43 @@ function WordStyleEditor({
       >
         B
       </button>
+      <label className={`word-sence-toggle ${senceCodeEnabled ? 'checked' : ''}`}>
+        <input
+          type="checkbox"
+          checked={senceCodeEnabled}
+          disabled={busy}
+          onChange={(event) => onSenceCodeChange(event.target.checked)}
+        />
+        <span>
+          <strong>Código SENCE</strong>
+          <small>Mostrar debajo del nombre del curso</small>
+        </span>
+      </label>
       <button type="button" className="word-style-reset" disabled={busy} onClick={onReset}>
         Restablecer estilos
       </button>
+      <label className="word-evaluation-label-field">
+        <span>Título de evaluación</span>
+        <input
+          type="text"
+          value={evaluationLabel}
+          disabled={busy}
+          placeholder="Evaluación"
+          onChange={(event) => onEvaluationLabelChange(event.target.value)}
+        />
+        <small>Solo cambia el encabezado; el resultado seguirá viniendo desde el Excel.</small>
+      </label>
+      <label className="word-sence-manual-field">
+        <span>Código SENCE para todos</span>
+        <input
+          type="text"
+          value={senceCodeManual}
+          disabled={busy || !senceCodeEnabled}
+          placeholder="Ej: 1234567890"
+          onChange={(event) => onSenceCodeManualChange(event.target.value)}
+        />
+        <small>Si queda vacío, se usará el valor encontrado en el Excel.</small>
+      </label>
     </div>
   )
 }
@@ -403,10 +449,16 @@ export function PreviewPanel({
   certificateLayout,
   certificateTexts,
   wordDataStyles,
+  wordSenceCodeEnabled,
+  wordSenceCodeManual,
+  wordEvaluationLabel,
   busy,
   onLayoutChange,
   onTextChange,
   onWordDataStylesChange,
+  onWordSenceCodeChange,
+  onWordSenceCodeManualChange,
+  onWordEvaluationLabelChange,
   onDownloadCurrent,
   onDownloadAll,
 }: {
@@ -420,10 +472,16 @@ export function PreviewPanel({
   certificateLayout: CertificateLayout
   certificateTexts: CertificateTextContent
   wordDataStyles: WordDataStyles
+  wordSenceCodeEnabled: boolean
+  wordSenceCodeManual: string
+  wordEvaluationLabel: string
   busy: boolean
   onLayoutChange: Dispatch<SetStateAction<CertificateLayout>>
   onTextChange: Dispatch<SetStateAction<CertificateTextContent>>
   onWordDataStylesChange: Dispatch<SetStateAction<WordDataStyles>>
+  onWordSenceCodeChange: (enabled: boolean) => void
+  onWordSenceCodeManualChange: (value: string) => void
+  onWordEvaluationLabelChange: (value: string) => void
   onDownloadCurrent: () => void
   onDownloadAll: () => void
 }) {
@@ -596,6 +654,9 @@ export function PreviewPanel({
               student={student}
               template={wordTemplate}
               dataStyles={wordDataStyles}
+              includeSenceCode={wordSenceCodeEnabled}
+              senceCodeOverride={wordSenceCodeManual}
+              evaluationLabel={wordEvaluationLabel}
               current={selectedIndex + 1}
               total={total}
             />
@@ -625,9 +686,15 @@ export function PreviewPanel({
         <WordStyleEditor
           selectedField={selectedWordField}
           styles={wordDataStyles}
+          senceCodeEnabled={wordSenceCodeEnabled}
+          senceCodeManual={wordSenceCodeManual}
+          evaluationLabel={wordEvaluationLabel}
           busy={busy}
           onSelectField={setSelectedWordField}
           onChange={onWordDataStylesChange}
+          onSenceCodeChange={onWordSenceCodeChange}
+          onSenceCodeManualChange={onWordSenceCodeManualChange}
+          onEvaluationLabelChange={onWordEvaluationLabelChange}
           onReset={() => onWordDataStylesChange(copyDefaultWordDataStyles())}
         />
       )}

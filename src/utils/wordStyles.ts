@@ -1,5 +1,6 @@
 export type WordDataFieldKey =
   | 'curso'
+  | 'codigoSence'
   | 'duracion'
   | 'modalidad'
   | 'fechaInicio'
@@ -19,6 +20,7 @@ export type WordDataStyles = Record<WordDataFieldKey, WordDataFieldStyle>
 
 export const wordDataFieldLabels: Record<WordDataFieldKey, string> = {
   curso: 'Curso',
+  codigoSence: 'Código SENCE',
   duracion: 'Duración',
   modalidad: 'Modalidad',
   fechaInicio: 'Fecha inicio',
