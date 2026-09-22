@@ -374,4 +374,3 @@ export async function wordTemplateToPdfBlob(
     renderHost.remove()
   }
 }
-
