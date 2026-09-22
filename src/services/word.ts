@@ -251,6 +251,11 @@ const renderOptions = {
   useBase64URL: true,
 }
 
+// 1.5 px por píxel CSS equivale aproximadamente a 144 DPI. Conserva el texto
+// pequeño legible, pero evita rasterizar cada página al doble de resolución.
+const WORD_PDF_RENDER_SCALE = 1.5
+const WORD_PDF_JPEG_QUALITY = 0.82
+
 async function waitForImages(container: HTMLElement): Promise<void> {
   const images = Array.from(container.querySelectorAll('img'))
   await Promise.all(
@@ -262,6 +267,20 @@ async function waitForImages(container: HTMLElement): Promise<void> {
       })
     }),
   )
+}
+
+async function canvasToJpegBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (result) => result
+        ? resolve(result)
+        : reject(new Error('No se pudo comprimir una página del certificado.')),
+      'image/jpeg',
+      WORD_PDF_JPEG_QUALITY,
+    )
+  })
+
+  return new Uint8Array(await blob.arrayBuffer())
 }
 
 export async function renderFilledWordTemplate(
@@ -319,20 +338,34 @@ export async function wordTemplateToPdfBlob(
     for (const page of pages) {
       const canvas = await html2canvas(page, {
         backgroundColor: '#ffffff',
-        scale: 2,
+        scale: WORD_PDF_RENDER_SCALE,
         useCORS: true,
         logging: false,
       })
-      const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait'
-      const format: [number, number] = [canvas.width, canvas.height]
+      const pageWidth = canvas.width / WORD_PDF_RENDER_SCALE
+      const pageHeight = canvas.height / WORD_PDF_RENDER_SCALE
+      const orientation = pageWidth > pageHeight ? 'landscape' : 'portrait'
+      const format: [number, number] = [pageWidth, pageHeight]
+      const imageData = await canvasToJpegBytes(canvas)
 
       if (!pdf) {
-        pdf = new jsPDF({ orientation, unit: 'px', format, hotfixes: ['px_scaling'] })
+        pdf = new jsPDF({
+          orientation,
+          unit: 'px',
+          format,
+          hotfixes: ['px_scaling'],
+          compress: true,
+          putOnlyUsedFonts: true,
+        })
       } else {
         pdf.addPage(format, orientation)
       }
 
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, canvas.width, canvas.height)
+      pdf.addImage(imageData, 'JPEG', 0, 0, pageWidth, pageHeight)
+
+      // Libera enseguida el bitmap grande al generar lotes de certificados.
+      canvas.width = 1
+      canvas.height = 1
     }
 
     if (!pdf) throw new Error('No se pudo generar el PDF.')
@@ -341,3 +374,4 @@ export async function wordTemplateToPdfBlob(
     renderHost.remove()
   }
 }
+
