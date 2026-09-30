@@ -67,4 +67,3 @@ export function copyDefaultWordDataStyles(): WordDataStyles {
 export function copyDefaultWordTableLayout(): WordTableLayout {
   return { columnWidths: {} }
 }
-

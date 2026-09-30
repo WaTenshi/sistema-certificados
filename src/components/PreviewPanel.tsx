@@ -732,4 +732,3 @@ export function PreviewPanel({
     </section>
   )
 }
-
