@@ -20,7 +20,12 @@ import {
   type CertificateTextContent,
 } from '../utils/certificateLayout'
 import { matchesStudent, studentName } from '../utils/students'
-import { copyDefaultWordDataStyles, type WordDataStyles } from '../utils/wordStyles'
+import {
+  copyDefaultWordDataStyles,
+  copyDefaultWordTableLayout,
+  type WordDataStyles,
+  type WordTableLayout,
+} from '../utils/wordStyles'
 
 const initialProgress: ProgressState = {
   open: false,
@@ -52,6 +57,7 @@ export function useCertificateWorkspace() {
   const [certificateLayout, setCertificateLayout] = useState<CertificateLayout>(copyDefaultCertificateLayout)
   const [certificateTexts, setCertificateTexts] = useState<CertificateTextContent>(copyDefaultCertificateTexts)
   const [wordDataStyles, setWordDataStyles] = useState<WordDataStyles>(copyDefaultWordDataStyles)
+  const [wordTableLayout, setWordTableLayout] = useState<WordTableLayout>(copyDefaultWordTableLayout)
   const [wordSenceCodeEnabled, setWordSenceCodeEnabled] = useState(false)
   const [wordSenceCodeManual, setWordSenceCodeManual] = useState('')
   const [wordEvaluationLabel, setWordEvaluationLabel] = useState('Evaluación')
@@ -111,6 +117,7 @@ export function useCertificateWorkspace() {
     if (!file) return
     setWordTemplate(await file.arrayBuffer())
     setWordTemplateName(file.name)
+    setWordTableLayout(copyDefaultWordTableLayout())
     notify('Plantilla Word lista para usar.', 'success')
   }
 
@@ -188,6 +195,7 @@ export function useCertificateWorkspace() {
           wordSenceCodeEnabled,
           wordSenceCodeManual,
           wordEvaluationLabel,
+          wordTableLayout,
         )
         saveAs(blob, `certificado-${baseName}.pdf`)
       }
@@ -233,6 +241,7 @@ export function useCertificateWorkspace() {
               wordSenceCodeEnabled,
               wordSenceCodeManual,
               wordEvaluationLabel,
+              wordTableLayout,
             ),
           )
         }
@@ -297,6 +306,7 @@ export function useCertificateWorkspace() {
     certificateLayout,
     certificateTexts,
     wordDataStyles,
+    wordTableLayout,
     wordSenceCodeEnabled,
     wordSenceCodeManual,
     wordEvaluationLabel,
@@ -325,6 +335,7 @@ export function useCertificateWorkspace() {
     setCertificateLayout,
     setCertificateTexts,
     setWordDataStyles,
+    setWordTableLayout,
     setWordSenceCodeEnabled,
     setWordSenceCodeManual,
     setWordEvaluationLabel,
@@ -333,3 +344,4 @@ export function useCertificateWorkspace() {
     dismissFeedback: () => setFeedback(null),
   }
 }
+

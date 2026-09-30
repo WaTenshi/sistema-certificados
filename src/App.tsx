@@ -78,6 +78,7 @@ export default function App() {
             certificateLayout={workspace.certificateLayout}
             certificateTexts={workspace.certificateTexts}
             wordDataStyles={workspace.wordDataStyles}
+            wordTableLayout={workspace.wordTableLayout}
             wordSenceCodeEnabled={workspace.wordSenceCodeEnabled}
             wordSenceCodeManual={workspace.wordSenceCodeManual}
             wordEvaluationLabel={workspace.wordEvaluationLabel}
@@ -85,6 +86,7 @@ export default function App() {
             onLayoutChange={workspace.setCertificateLayout}
             onTextChange={workspace.setCertificateTexts}
             onWordDataStylesChange={workspace.setWordDataStyles}
+            onWordTableLayoutChange={workspace.setWordTableLayout}
             onWordSenceCodeChange={workspace.setWordSenceCodeEnabled}
             onWordSenceCodeManualChange={workspace.setWordSenceCodeManual}
             onWordEvaluationLabelChange={workspace.setWordEvaluationLabel}
@@ -105,3 +107,4 @@ export default function App() {
     </div>
   )
 }
+

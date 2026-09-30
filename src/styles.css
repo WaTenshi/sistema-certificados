@@ -1423,7 +1423,7 @@ textarea:focus-visible {
 
 .word-style-editor {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(140px, 0.9fr) auto minmax(220px, 1.25fr) minmax(145px, auto);
+  grid-template-columns: minmax(150px, 1fr) minmax(140px, 0.9fr) auto auto minmax(220px, 1.25fr) repeat(2, minmax(130px, auto));
   align-items: end;
   gap: 8px;
   padding: 8px 12px;
@@ -1577,6 +1577,70 @@ textarea:focus-visible {
 .word-document-preview .docx-wrapper > section.docx {
   margin: 0;
   box-shadow: none;
+}
+
+.word-resizable-table {
+  table-layout: fixed;
+  max-width: none !important;
+}
+
+.word-resizable-cell {
+  position: relative;
+}
+
+.word-cell-resize-handle {
+  position: absolute;
+  z-index: 20;
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: rgb(30 111 190 / 58%);
+  opacity: 0;
+  transition: opacity 120ms ease, background 120ms ease;
+  touch-action: none;
+}
+
+.word-resizable-cell:hover .word-cell-resize-handle,
+.word-cell-resize-handle:focus-visible,
+.word-cell-resize-handle:active {
+  opacity: 1;
+}
+
+.word-cell-resize-handle:hover,
+.word-cell-resize-handle:active {
+  background: var(--blue-700);
+}
+
+.word-cell-resize-handle.horizontal {
+  top: 3px;
+  right: -4px;
+  bottom: 3px;
+  width: 8px;
+  cursor: ew-resize;
+}
+
+.word-cell-resize-handle.vertical {
+  right: 3px;
+  bottom: -4px;
+  left: 3px;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.word-resize-help {
+  position: absolute;
+  z-index: 6;
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 9px;
+  color: var(--blue-700);
+  background: rgb(239 247 255 / 92%);
+  border: 1px solid #b9d4f1;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 750;
+  pointer-events: none;
 }
 
 .word-render-error {
@@ -2223,3 +2287,4 @@ textarea:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+

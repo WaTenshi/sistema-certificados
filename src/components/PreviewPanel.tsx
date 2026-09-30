@@ -14,10 +14,12 @@ import {
 import { studentName } from '../utils/students'
 import {
   copyDefaultWordDataStyles,
+  copyDefaultWordTableLayout,
   wordDataFieldLabels,
   wordFontFamilies,
   type WordDataFieldKey,
   type WordDataStyles,
+  type WordTableLayout,
 } from '../utils/wordStyles'
 import { ImageCertificatePreview, WordCertificatePreview } from './CertificatePreview'
 import { Icon } from './Icon'
@@ -335,6 +337,7 @@ function WordStyleEditor({
   onSenceCodeManualChange,
   onEvaluationLabelChange,
   onReset,
+  onResetTableLayout,
 }: {
   selectedField: WordDataFieldKey
   styles: WordDataStyles
@@ -348,6 +351,7 @@ function WordStyleEditor({
   onSenceCodeManualChange: (value: string) => void
   onEvaluationLabelChange: (value: string) => void
   onReset: () => void
+  onResetTableLayout: () => void
 }) {
   const activeStyle = styles[selectedField]
 
@@ -387,6 +391,14 @@ function WordStyleEditor({
           ))}
         </select>
       </label>
+      <LayoutNumberInput
+        label="Tamaño"
+        min={6}
+        max={40}
+        value={activeStyle.fontSize}
+        disabled={busy}
+        onChange={(value) => patchActiveStyle({ fontSize: value })}
+      />
       <button
         type="button"
         className={`layout-format-button ${activeStyle.bold ? 'active' : ''}`}
@@ -411,6 +423,9 @@ function WordStyleEditor({
       </label>
       <button type="button" className="word-style-reset" disabled={busy} onClick={onReset}>
         Restablecer estilos
+      </button>
+      <button type="button" className="word-style-reset" disabled={busy} onClick={onResetTableLayout}>
+        Restablecer celdas
       </button>
       <label className="word-evaluation-label-field">
         <span>Título de evaluación</span>
@@ -449,6 +464,7 @@ export function PreviewPanel({
   certificateLayout,
   certificateTexts,
   wordDataStyles,
+  wordTableLayout,
   wordSenceCodeEnabled,
   wordSenceCodeManual,
   wordEvaluationLabel,
@@ -456,6 +472,7 @@ export function PreviewPanel({
   onLayoutChange,
   onTextChange,
   onWordDataStylesChange,
+  onWordTableLayoutChange,
   onWordSenceCodeChange,
   onWordSenceCodeManualChange,
   onWordEvaluationLabelChange,
@@ -472,6 +489,7 @@ export function PreviewPanel({
   certificateLayout: CertificateLayout
   certificateTexts: CertificateTextContent
   wordDataStyles: WordDataStyles
+  wordTableLayout: WordTableLayout
   wordSenceCodeEnabled: boolean
   wordSenceCodeManual: string
   wordEvaluationLabel: string
@@ -479,6 +497,7 @@ export function PreviewPanel({
   onLayoutChange: Dispatch<SetStateAction<CertificateLayout>>
   onTextChange: Dispatch<SetStateAction<CertificateTextContent>>
   onWordDataStylesChange: Dispatch<SetStateAction<WordDataStyles>>
+  onWordTableLayoutChange: Dispatch<SetStateAction<WordTableLayout>>
   onWordSenceCodeChange: (enabled: boolean) => void
   onWordSenceCodeManualChange: (value: string) => void
   onWordEvaluationLabelChange: (value: string) => void
@@ -657,6 +676,8 @@ export function PreviewPanel({
               includeSenceCode={wordSenceCodeEnabled}
               senceCodeOverride={wordSenceCodeManual}
               evaluationLabel={wordEvaluationLabel}
+              tableLayout={wordTableLayout}
+              onTableLayoutChange={onWordTableLayoutChange}
               current={selectedIndex + 1}
               total={total}
             />
@@ -696,6 +717,7 @@ export function PreviewPanel({
           onSenceCodeManualChange={onWordSenceCodeManualChange}
           onEvaluationLabelChange={onWordEvaluationLabelChange}
           onReset={() => onWordDataStylesChange(copyDefaultWordDataStyles())}
+          onResetTableLayout={() => onWordTableLayoutChange(copyDefaultWordTableLayout())}
         />
       )}
 
@@ -710,3 +732,4 @@ export function PreviewPanel({
     </section>
   )
 }
+

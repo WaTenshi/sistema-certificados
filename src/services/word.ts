@@ -3,7 +3,14 @@ import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import JSZip from 'jszip'
 import type { Student } from '../types'
-import { copyDefaultWordDataStyles, type WordDataFieldKey, type WordDataFieldStyle, type WordDataStyles } from '../utils/wordStyles'
+import {
+  copyDefaultWordDataStyles,
+  type WordDataFieldKey,
+  type WordDataFieldStyle,
+  type WordDataStyles,
+  type WordTableFieldKey,
+  type WordTableLayout,
+} from '../utils/wordStyles'
 
 function escapeXml(value: string): string {
   return value
@@ -13,11 +20,16 @@ function escapeXml(value: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function createDataRun(value: string, leadingSpace = false, style: WordDataFieldStyle = { fontFamily: 'Calibri', bold: false }): string {
+function createDataRun(
+  value: string,
+  leadingSpace = false,
+  style: WordDataFieldStyle = { fontFamily: 'Calibri', bold: false, fontSize: 10 },
+): string {
   const content = `${leadingSpace ? ' ' : ''}${escapeXml(value)}`
   const fontFamily = escapeXml(style.fontFamily)
   const bold = style.bold ? '1' : '0'
-  return `<w:r><w:rPr><w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}" w:cs="${fontFamily}"/><w:b w:val="${bold}"/><w:bCs w:val="${bold}"/><w:i w:val="0"/><w:iCs w:val="0"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">${content}</w:t></w:r>`
+  const fontSize = Math.round(style.fontSize * 2)
+  return `<w:r><w:rPr><w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}" w:cs="${fontFamily}"/><w:b w:val="${bold}"/><w:bCs w:val="${bold}"/><w:i w:val="0"/><w:iCs w:val="0"/><w:sz w:val="${fontSize}"/><w:szCs w:val="${fontSize}"/></w:rPr><w:t xml:space="preserve">${content}</w:t></w:r>`
 }
 
 function textFromXml(xml: string): string {
@@ -155,11 +167,117 @@ function rowCells(row: string): string[] {
   return Array.from(row.matchAll(/<w:tc[\s\S]*?<\/w:tc>/g)).map((match) => match[0])
 }
 
+const tableFieldKeys = new Set<WordTableFieldKey>(['rut', 'nombre', 'nota', 'asistencia', 'evaluacion'])
+
+function replaceOrInsertProperty(container: string, propertyPattern: RegExp, property: string, propertiesTag: string): string {
+  if (propertyPattern.test(container)) return container.replace(propertyPattern, property)
+
+  const openProperties = new RegExp(`<${propertiesTag}(?:\\s[^>]*)?>`)
+  const existing = openProperties.exec(container)
+  if (existing) {
+    const insertAt = existing.index + existing[0].length
+    return container.slice(0, insertAt) + property + container.slice(insertAt)
+  }
+
+  const openContainerEnd = container.indexOf('>') + 1
+  if (openContainerEnd <= 0) return container
+  return container.slice(0, openContainerEnd) + `<${propertiesTag}>${property}</${propertiesTag}>` + container.slice(openContainerEnd)
+}
+
+function setCellWidth(cell: string, widthPx: number): string {
+  const widthTwips = Math.round(widthPx * 15)
+  return replaceOrInsertProperty(
+    cell,
+    /<w:tcW\b[^>]*\/?\s*>/,
+    `<w:tcW w:w="${widthTwips}" w:type="dxa"/>`,
+    'w:tcPr',
+  )
+}
+
+function setRowHeight(row: string, heightPx: number): string {
+  const heightTwips = Math.round(heightPx * 15)
+  return replaceOrInsertProperty(
+    row,
+    /<w:trHeight\b[^>]*\/?\s*>/,
+    `<w:trHeight w:val="${heightTwips}" w:hRule="exact"/>`,
+    'w:trPr',
+  )
+}
+
+function applyParticipantTableLayout(
+  table: string,
+  rows: string[],
+  headerRowIndex: number,
+  headers: string[],
+  layout: WordTableLayout,
+): string {
+  const hasColumnWidths = Object.keys(layout.columnWidths).length > 0
+  if (!hasColumnWidths && layout.dataRowHeight == null) return table
+
+  let updatedTable = table
+  let headerRow = rows[headerRowIndex]
+  let dataRow = rows[headerRowIndex + 1]
+  const headerCells = rowCells(headerRow)
+  const dataCells = rowCells(dataRow)
+
+  headers.forEach((header, index) => {
+    if (!tableFieldKeys.has(header as WordTableFieldKey)) return
+    const width = layout.columnWidths[header as WordTableFieldKey]
+    if (width == null) return
+    if (headerCells[index]) headerRow = headerRow.replace(headerCells[index], setCellWidth(headerCells[index], width))
+    if (dataCells[index]) dataRow = dataRow.replace(dataCells[index], setCellWidth(dataCells[index], width))
+  })
+
+  if (layout.dataRowHeight != null) dataRow = setRowHeight(dataRow, layout.dataRowHeight)
+
+  updatedTable = updatedTable.replace(rows[headerRowIndex], headerRow)
+  updatedTable = updatedTable.replace(rows[headerRowIndex + 1], dataRow)
+
+  if (hasColumnWidths) {
+    updatedTable = updatedTable.replace(/<w:tblGrid(?:\s[^>]*)?>[\s\S]*?<\/w:tblGrid>/, (grid) => {
+      const gridColumns = Array.from(grid.matchAll(/<w:gridCol\b[^>]*\/?\s*>/g)).map((match) => match[0])
+      let updatedGrid = grid
+      headers.forEach((header, index) => {
+        if (!tableFieldKeys.has(header as WordTableFieldKey) || !gridColumns[index]) return
+        const width = layout.columnWidths[header as WordTableFieldKey]
+        if (width == null) return
+        updatedGrid = updatedGrid.replace(
+          gridColumns[index],
+          `<w:gridCol w:w="${Math.round(width * 15)}"/>`,
+        )
+      })
+      return updatedGrid
+    })
+    const updatedGrid = /<w:tblGrid(?:\s[^>]*)?>[\s\S]*?<\/w:tblGrid>/.exec(updatedTable)?.[0]
+    const totalWidth = updatedGrid
+      ? Array.from(updatedGrid.matchAll(/<w:gridCol\b[^>]*w:w="(\d+)"[^>]*\/?\s*>/g))
+        .reduce((sum, match) => sum + Number(match[1]), 0)
+      : 0
+    if (totalWidth > 0) {
+      updatedTable = replaceOrInsertProperty(
+        updatedTable,
+        /<w:tblW\b[^>]*\/?\s*>/,
+        `<w:tblW w:w="${totalWidth}" w:type="dxa"/>`,
+        'w:tblPr',
+      )
+    }
+    updatedTable = replaceOrInsertProperty(
+      updatedTable,
+      /<w:tblLayout\b[^>]*\/?\s*>/,
+      '<w:tblLayout w:type="fixed"/>',
+      'w:tblPr',
+    )
+  }
+
+  return updatedTable
+}
+
 function fillParticipantTable(
   xml: string,
   student: Student,
   styles: WordDataStyles,
   evaluationLabel: string,
+  tableLayout: WordTableLayout,
 ): string {
   return xml.replace(/<w:tbl[\s\S]*?<\/w:tbl>/g, (table) => {
     const rows = tableRows(table)
@@ -201,9 +319,11 @@ function fillParticipantTable(
       headerRow = headerRow.replace(cell, replaceCellTextPreservingStyle(cell, evaluationLabel))
     })
 
-    return table
+    const filledTable = table
       .replace(rows[headerRowIndex + 1], dataRow)
       .replace(rows[headerRowIndex], headerRow)
+    const filledRows = tableRows(filledTable)
+    return applyParticipantTableLayout(filledTable, filledRows, headerRowIndex, headerCells, tableLayout)
   })
 }
 
@@ -214,6 +334,7 @@ export async function fillWordTemplate(
   includeSenceCode = false,
   senceCodeOverride = '',
   evaluationLabel = 'Evaluación',
+  tableLayout: WordTableLayout = { columnWidths: {} },
 ): Promise<ArrayBuffer> {
   const zip = await JSZip.loadAsync(template)
   const documentFile = zip.file('word/document.xml')
@@ -234,7 +355,7 @@ export async function fillWordTemplate(
   xml = injectInParagraphId(xml, '77EE5041', student.nota ?? '', dataStyles.nota)
   xml = injectInParagraphId(xml, '0C89B983', student.asistencia ?? '', dataStyles.asistencia)
   xml = injectInParagraphId(xml, '1A9E9FA6', student.evaluacion ?? '', dataStyles.evaluacion)
-  xml = fillParticipantTable(xml, student, dataStyles, evaluationLabel.trim() || 'Evaluación')
+  xml = fillParticipantTable(xml, student, dataStyles, evaluationLabel.trim() || 'Evaluación', tableLayout)
 
   zip.file('word/document.xml', xml)
   return zip.generateAsync({ type: 'arraybuffer' })
@@ -291,6 +412,7 @@ export async function renderFilledWordTemplate(
   includeSenceCode = false,
   senceCodeOverride = '',
   evaluationLabel = 'Evaluación',
+  tableLayout: WordTableLayout = { columnWidths: {} },
 ): Promise<void> {
   container.replaceChildren()
   const documentBuffer = await fillWordTemplate(
@@ -300,6 +422,7 @@ export async function renderFilledWordTemplate(
     includeSenceCode,
     senceCodeOverride,
     evaluationLabel,
+    tableLayout,
   )
   await renderAsync(documentBuffer, container, container, renderOptions)
   await waitForImages(container)
@@ -313,6 +436,7 @@ export async function wordTemplateToPdfBlob(
   includeSenceCode = false,
   senceCodeOverride = '',
   evaluationLabel = 'Evaluación',
+  tableLayout: WordTableLayout = { columnWidths: {} },
 ): Promise<Blob> {
   const renderHost = document.createElement('div')
   renderHost.className = 'word-pdf-render-host'
@@ -329,6 +453,7 @@ export async function wordTemplateToPdfBlob(
       includeSenceCode,
       senceCodeOverride,
       evaluationLabel,
+      tableLayout,
     )
     const pages = Array.from(renderHost.querySelectorAll<HTMLElement>('section.docx'))
     if (!pages.length) throw new Error('No se pudieron detectar las páginas de la plantilla Word.')
@@ -374,3 +499,4 @@ export async function wordTemplateToPdfBlob(
     renderHost.remove()
   }
 }
+

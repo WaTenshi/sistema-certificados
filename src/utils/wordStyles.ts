@@ -14,9 +14,17 @@ export type WordDataFieldKey =
 export interface WordDataFieldStyle {
   fontFamily: string
   bold: boolean
+  fontSize: number
 }
 
 export type WordDataStyles = Record<WordDataFieldKey, WordDataFieldStyle>
+
+export type WordTableFieldKey = 'rut' | 'nombre' | 'nota' | 'asistencia' | 'evaluacion'
+
+export interface WordTableLayout {
+  columnWidths: Partial<Record<WordTableFieldKey, number>>
+  dataRowHeight?: number
+}
 
 export const wordDataFieldLabels: Record<WordDataFieldKey, string> = {
   curso: 'Curso',
@@ -50,7 +58,13 @@ export function copyDefaultWordDataStyles(): WordDataStyles {
       {
         fontFamily: 'Calibri',
         bold: false,
+        fontSize: 10,
       },
     ]),
   ) as WordDataStyles
 }
+
+export function copyDefaultWordTableLayout(): WordTableLayout {
+  return { columnWidths: {} }
+}
+
