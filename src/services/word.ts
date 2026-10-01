@@ -11,6 +11,7 @@ import {
   type WordTableFieldKey,
   type WordTableLayout,
 } from '../utils/wordStyles'
+import { updateActiveTableGrid } from '../utils/wordTableXml'
 
 function escapeXml(value: string): string {
   return value
@@ -234,25 +235,9 @@ function applyParticipantTableLayout(
   updatedTable = updatedTable.replace(rows[headerRowIndex + 1], dataRow)
 
   if (hasColumnWidths) {
-    updatedTable = updatedTable.replace(/<w:tblGrid(?:\s[^>]*)?>[\s\S]*?<\/w:tblGrid>/, (grid) => {
-      const gridColumns = Array.from(grid.matchAll(/<w:gridCol\b[^>]*\/?\s*>/g)).map((match) => match[0])
-      let updatedGrid = grid
-      headers.forEach((header, index) => {
-        if (!tableFieldKeys.has(header as WordTableFieldKey) || !gridColumns[index]) return
-        const width = layout.columnWidths[header as WordTableFieldKey]
-        if (width == null) return
-        updatedGrid = updatedGrid.replace(
-          gridColumns[index],
-          `<w:gridCol w:w="${Math.round(width * 15)}"/>`,
-        )
-      })
-      return updatedGrid
-    })
-    const updatedGrid = /<w:tblGrid(?:\s[^>]*)?>[\s\S]*?<\/w:tblGrid>/.exec(updatedTable)?.[0]
-    const totalWidth = updatedGrid
-      ? Array.from(updatedGrid.matchAll(/<w:gridCol\b[^>]*w:w="(\d+)"[^>]*\/?\s*>/g))
-        .reduce((sum, match) => sum + Number(match[1]), 0)
-      : 0
+    const gridUpdate = updateActiveTableGrid(updatedTable, headers, layout.columnWidths)
+    updatedTable = gridUpdate.table
+    const totalWidth = gridUpdate.totalWidth
     if (totalWidth > 0) {
       updatedTable = replaceOrInsertProperty(
         updatedTable,

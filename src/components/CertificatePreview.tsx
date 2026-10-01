@@ -225,24 +225,6 @@ export function WordCertificatePreview({
         ? (pageBounds.right - tableBounds.left) / Math.max(previewScale, 0.01) - 12
         : table.offsetWidth
       const maximumTableWidth = Math.max(minimumTableWidth, Math.floor(availablePageWidth))
-      const currentTableWidth = workingColumnWidths.reduce((sum, width) => sum + width, 0)
-
-      // Recupera automáticamente configuraciones antiguas que dejaron la tabla
-      // más ancha que la hoja. Mantiene un mínimo utilizable por columna.
-      if (Object.keys(tableLayout.columnWidths).length > 0 && currentTableWidth > maximumTableWidth + 2) {
-        const flexibleWidth = Math.max(maximumTableWidth - minimumTableWidth, 0)
-        const currentFlexibleWidth = Math.max(currentTableWidth - minimumTableWidth, 1)
-        const fittedWidths = workingColumnWidths.map((width) => (
-          minimumColumnWidth + Math.max(width - minimumColumnWidth, 0) * flexibleWidth / currentFlexibleWidth
-        ))
-        const fittedColumns: WordTableLayout['columnWidths'] = {}
-        headers.forEach((header, index) => {
-          const field = header as WordTableFieldKey
-          if (fields.has(field)) fittedColumns[field] = Math.floor(fittedWidths[index])
-        })
-        onTableLayoutChange((current) => ({ ...current, columnWidths: fittedColumns }))
-        return
-      }
 
       Array.from(dataRow.cells).forEach((cell, index) => {
         const field = headers[index] as WordTableFieldKey
