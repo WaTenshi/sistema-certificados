@@ -1582,6 +1582,7 @@ textarea:focus-visible {
 .word-resizable-table {
   table-layout: fixed;
   max-width: none !important;
+  box-sizing: border-box;
 }
 
 .word-resizable-cell {

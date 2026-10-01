@@ -213,6 +213,36 @@ export function WordCertificatePreview({
       dataRow.classList.add('word-resizable-data-row')
       const headers = Array.from(headerRow.cells).map((cell) => normalize(cell.textContent ?? ''))
       const workingColumnWidths = Array.from(headerRow.cells).map((cell) => cell.offsetWidth)
+      const page = table.closest<HTMLElement>('section.docx')
+      const pageBounds = page?.getBoundingClientRect()
+      const tableBounds = table.getBoundingClientRect()
+      const previewScale = page && pageBounds
+        ? pageBounds.width / Math.max(page.offsetWidth, 1)
+        : tableBounds.width / Math.max(table.offsetWidth, 1)
+      const minimumColumnWidth = 45
+      const minimumTableWidth = minimumColumnWidth * workingColumnWidths.length
+      const availablePageWidth = pageBounds
+        ? (pageBounds.right - tableBounds.left) / Math.max(previewScale, 0.01) - 12
+        : table.offsetWidth
+      const maximumTableWidth = Math.max(minimumTableWidth, Math.floor(availablePageWidth))
+      const currentTableWidth = workingColumnWidths.reduce((sum, width) => sum + width, 0)
+
+      // Recupera automáticamente configuraciones antiguas que dejaron la tabla
+      // más ancha que la hoja. Mantiene un mínimo utilizable por columna.
+      if (Object.keys(tableLayout.columnWidths).length > 0 && currentTableWidth > maximumTableWidth + 2) {
+        const flexibleWidth = Math.max(maximumTableWidth - minimumTableWidth, 0)
+        const currentFlexibleWidth = Math.max(currentTableWidth - minimumTableWidth, 1)
+        const fittedWidths = workingColumnWidths.map((width) => (
+          minimumColumnWidth + Math.max(width - minimumColumnWidth, 0) * flexibleWidth / currentFlexibleWidth
+        ))
+        const fittedColumns: WordTableLayout['columnWidths'] = {}
+        headers.forEach((header, index) => {
+          const field = header as WordTableFieldKey
+          if (fields.has(field)) fittedColumns[field] = Math.floor(fittedWidths[index])
+        })
+        onTableLayoutChange((current) => ({ ...current, columnWidths: fittedColumns }))
+        return
+      }
 
       Array.from(dataRow.cells).forEach((cell, index) => {
         const field = headers[index] as WordTableFieldKey
@@ -247,7 +277,18 @@ export function WordCertificatePreview({
 
           const move = (moveEvent: globalThis.PointerEvent) => {
             if (axis === 'horizontal') {
-              nextWidth = Math.min(900, Math.max(45, startWidth + (moveEvent.clientX - startX) / scale))
+              const otherColumnsWidth = workingColumnWidths.reduce(
+                (sum, width, columnIndex) => sum + (columnIndex === index ? 0 : width),
+                0,
+              )
+              const maximumColumnWidth = Math.max(
+                minimumColumnWidth,
+                maximumTableWidth - otherColumnsWidth,
+              )
+              nextWidth = Math.min(
+                maximumColumnWidth,
+                Math.max(minimumColumnWidth, startWidth + (moveEvent.clientX - startX) / scale),
+              )
               workingColumnWidths[index] = nextWidth
               ;[headerRow, dataRow].forEach((row) => {
                 const target = row.cells[index] as HTMLTableCellElement | undefined
@@ -315,7 +356,7 @@ export function WordCertificatePreview({
     <div className="word-preview-shell">
       {renderError && <div className="word-render-error">{renderError}</div>}
       <div className="word-document-preview" ref={previewRef} />
-      <span className="word-resize-help">Arrastra los bordes azules para ajustar las celdas</span>
+      <span className="word-resize-help">Arrastra los bordes azules · la tabla se mantiene dentro de la hoja</span>
       <span className="preview-count">Certificado {current} / {total}</span>
     </div>
   )

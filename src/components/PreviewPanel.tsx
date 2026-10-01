@@ -327,12 +327,14 @@ const wordDataFields = Object.keys(wordDataFieldLabels) as WordDataFieldKey[]
 function WordStyleEditor({
   selectedField,
   styles,
+  tableLayout,
   senceCodeEnabled,
   senceCodeManual,
   evaluationLabel,
   busy,
   onSelectField,
   onChange,
+  onTableLayoutChange,
   onSenceCodeChange,
   onSenceCodeManualChange,
   onEvaluationLabelChange,
@@ -341,12 +343,14 @@ function WordStyleEditor({
 }: {
   selectedField: WordDataFieldKey
   styles: WordDataStyles
+  tableLayout: WordTableLayout
   senceCodeEnabled: boolean
   senceCodeManual: string
   evaluationLabel: string
   busy: boolean
   onSelectField: (field: WordDataFieldKey) => void
   onChange: Dispatch<SetStateAction<WordDataStyles>>
+  onTableLayoutChange: Dispatch<SetStateAction<WordTableLayout>>
   onSenceCodeChange: (enabled: boolean) => void
   onSenceCodeManualChange: (value: string) => void
   onEvaluationLabelChange: (value: string) => void
@@ -354,6 +358,10 @@ function WordStyleEditor({
   onResetTableLayout: () => void
 }) {
   const activeStyle = styles[selectedField]
+  const selectedTableField = (['rut', 'nombre', 'nota', 'asistencia', 'evaluacion'] as WordDataFieldKey[])
+    .includes(selectedField)
+    ? selectedField as keyof WordTableLayout['columnWidths']
+    : null
 
   function patchActiveStyle(patch: Partial<WordDataStyles[WordDataFieldKey]>) {
     onChange((current) => ({
@@ -399,6 +407,22 @@ function WordStyleEditor({
         disabled={busy}
         onChange={(value) => patchActiveStyle({ fontSize: value })}
       />
+      {selectedTableField && (
+        <LayoutNumberInput
+          label="Ancho celda"
+          min={45}
+          max={900}
+          value={tableLayout.columnWidths[selectedTableField] ?? ''}
+          disabled={busy}
+          onChange={(value) => onTableLayoutChange((current) => ({
+            ...current,
+            columnWidths: {
+              ...current.columnWidths,
+              [selectedTableField]: Math.min(900, Math.max(45, value)),
+            },
+          }))}
+        />
+      )}
       <button
         type="button"
         className={`layout-format-button ${activeStyle.bold ? 'active' : ''}`}
@@ -707,12 +731,14 @@ export function PreviewPanel({
         <WordStyleEditor
           selectedField={selectedWordField}
           styles={wordDataStyles}
+          tableLayout={wordTableLayout}
           senceCodeEnabled={wordSenceCodeEnabled}
           senceCodeManual={wordSenceCodeManual}
           evaluationLabel={wordEvaluationLabel}
           busy={busy}
           onSelectField={setSelectedWordField}
           onChange={onWordDataStylesChange}
+          onTableLayoutChange={onWordTableLayoutChange}
           onSenceCodeChange={onWordSenceCodeChange}
           onSenceCodeManualChange={onWordSenceCodeManualChange}
           onEvaluationLabelChange={onWordEvaluationLabelChange}
