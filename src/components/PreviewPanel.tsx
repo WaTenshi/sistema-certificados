@@ -75,6 +75,7 @@ function FittedPreview({
 
 const editableFields = Object.keys(certificateFieldLabels) as CertificateFieldKey[]
 const textEditableFields = new Set<CertificateFieldKey>(['introText', 'senceLegend'])
+const labelEditableFields = new Set<CertificateFieldKey>(['fechaInicio', 'fechaTermino', 'duracion', 'modalidad'])
 
 function isTextField(field: CertificateFieldKey): field is CertificateTextFieldKey {
   return textEditableFields.has(field)
@@ -128,7 +129,7 @@ function LayoutEditor({
   onMoveSelected,
   onResetSelected,
   onResetAll,
-  onToggleSenceLegend,
+  onToggleVisibility,
 }: {
   selectedFields: CertificateFieldKey[]
   layout: CertificateLayout
@@ -142,14 +143,13 @@ function LayoutEditor({
   onMoveSelected: (deltaX: number, deltaY: number) => void
   onResetSelected: () => void
   onResetAll: () => void
-  onToggleSenceLegend: () => void
+  onToggleVisibility: (field: CertificateFieldKey) => void
 }) {
   const activeField = selectedFields.at(-1) ?? 'curso'
   const selectedCount = selectedFields.length
   const multipleSelected = selectedCount > 1
   const fieldLayout = layout[activeField]
-  const availableFields = editableFields.filter((field) => layout[field].visible !== false)
-  const senceLegendVisible = layout.senceLegend.visible !== false
+  const activeFieldVisible = fieldLayout.visible !== false
 
   function sharedValue<K extends 'fontSize' | 'width' | 'fontFamily' | 'weight'>(key: K): CertificateFieldLayout[K] | '' {
     const firstValue = layout[selectedFields[0] ?? activeField][key]
@@ -187,15 +187,18 @@ function LayoutEditor({
           disabled={busy}
           onChange={(event) => onSelectField(event.target.value as CertificateFieldKey)}
         >
-          {availableFields.map((field) => (
+          {editableFields.map((field) => (
             <option key={field} value={field}>{certificateFieldLabels[field]}</option>
           ))}
         </select>
       </label>
 
       <div className="layout-multi-select" aria-label="Campos seleccionados">
-        {availableFields.map((field) => (
-          <label key={field} className={selectedFields.includes(field) ? 'checked' : ''}>
+        {editableFields.map((field) => (
+          <label
+            key={field}
+            className={`${selectedFields.includes(field) ? 'checked' : ''} ${layout[field].visible === false ? 'hidden-field' : ''}`}
+          >
             <input
               type="checkbox"
               checked={selectedFields.includes(field)}
@@ -215,6 +218,18 @@ function LayoutEditor({
             disabled={busy}
             rows={activeField === 'senceLegend' ? 3 : 2}
             onChange={(event) => onTextChange(activeField, event.target.value)}
+          />
+        </label>
+      )}
+
+      {labelEditableFields.has(activeField) && (
+        <label className="layout-text-field">
+          <span>Etiqueta</span>
+          <input
+            type="text"
+            value={fieldLayout.label ?? ''}
+            disabled={busy}
+            onChange={(event) => onUpdateField(activeField, { label: event.target.value })}
           />
         </label>
       )}
@@ -306,8 +321,8 @@ function LayoutEditor({
         <div className="layout-tool-group actions">
           <span className="layout-group-label">{selectedCount} seleccionado{selectedCount === 1 ? '' : 's'}</span>
           <div className="layout-reset-actions">
-            <button type="button" disabled={busy} onClick={onToggleSenceLegend}>
-              {senceLegendVisible ? 'Quitar leyenda SENCE' : 'Añadir leyenda SENCE'}
+            <button type="button" disabled={busy} onClick={() => onToggleVisibility(activeField)}>
+              {activeFieldVisible ? 'Ocultar campo' : 'Mostrar campo'}
             </button>
             <button type="button" disabled={busy} onClick={onResetSelected}>
               Restablecer selección
@@ -598,26 +613,17 @@ export function PreviewPanel({
     })
   }
 
-  function toggleSenceLegend() {
+  function toggleFieldVisibility(field: CertificateFieldKey) {
     onLayoutChange((current) => {
-      const nextVisible = current.senceLegend.visible === false
+      const nextVisible = current[field].visible === false
       return {
         ...current,
-        senceLegend: {
-          ...current.senceLegend,
+        [field]: {
+          ...current[field],
           visible: nextVisible,
         },
       }
     })
-
-    if (certificateLayout.senceLegend.visible === false) {
-      setSelectedFields(['senceLegend'])
-    } else {
-      setSelectedFields((current) => {
-        const next = current.filter((field) => field !== 'senceLegend')
-        return next.length ? next : ['curso']
-      })
-    }
   }
 
   function resetAllLayout() {
@@ -723,7 +729,7 @@ export function PreviewPanel({
           onMoveSelected={(deltaX, deltaY) => moveSelectedFields(deltaX, deltaY)}
           onResetSelected={resetSelectedFields}
           onResetAll={resetAllLayout}
-          onToggleSenceLegend={toggleSenceLegend}
+          onToggleVisibility={toggleFieldVisibility}
         />
       )}
 

@@ -67,7 +67,7 @@ function drawDetail(
   scaleX: number,
   scaleY: number,
 ) {
-  const detail = certificateDetail(student, field)
+  const detail = certificateDetail(student, field, layout.label)
   const fontSize = Math.round(layout.fontSize * scaleX)
   const x = Math.round(layout.x * scaleX)
   const y = Math.round((layout.y * scaleY) + fontSize)

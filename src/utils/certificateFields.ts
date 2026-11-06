@@ -3,10 +3,17 @@ import type { Student } from '../types'
 type CertificateDetailKey = 'fechaInicio' | 'fechaTermino' | 'duracion' | 'modalidad'
 
 const detailLabels: Record<CertificateDetailKey, string> = {
-  fechaInicio: 'Fecha inicio',
+  fechaInicio: 'Fecha de ejecución',
   fechaTermino: 'Fecha término',
   duracion: 'Duración',
   modalidad: 'Modalidad',
+}
+
+const detailLabelAliases: Record<CertificateDetailKey, string[]> = {
+  fechaInicio: ['Fecha inicio', 'Fecha de inicio', 'Fecha ejecución', 'Fecha de ejecución'],
+  fechaTermino: ['Fecha término', 'Fecha de término', 'Fecha termino', 'Fecha de termino'],
+  duracion: ['Duración', 'Duracion'],
+  modalidad: ['Modalidad'],
 }
 
 function normalizeForCompare(value: string): string {
@@ -16,13 +23,15 @@ function normalizeForCompare(value: string): string {
     .toLowerCase()
 }
 
-function stripExistingLabel(label: string, value: string): string {
+function stripExistingLabels(labels: string[], value: string): string {
   const trimmed = value.trim()
   const normalizedValue = normalizeForCompare(trimmed)
-  const normalizedLabel = normalizeForCompare(label)
-  const prefix = `${normalizedLabel}:`
+  const hasKnownPrefix = labels.some((label) => {
+    const normalizedLabel = normalizeForCompare(label)
+    return normalizedValue.startsWith(`${normalizedLabel}:`)
+  })
 
-  if (!normalizedValue.startsWith(prefix)) return trimmed
+  if (!hasKnownPrefix) return trimmed
 
   return trimmed.slice(trimmed.indexOf(':') + 1).trim()
 }
@@ -30,9 +39,10 @@ function stripExistingLabel(label: string, value: string): string {
 export function certificateDetail(
   student: Student,
   key: CertificateDetailKey,
+  customLabel?: string,
 ): { label: string; value: string; text: string } {
-  const label = detailLabels[key]
-  const value = stripExistingLabel(label, student[key])
+  const label = customLabel?.trim() || detailLabels[key]
+  const value = stripExistingLabels([label, ...detailLabelAliases[key]], student[key])
 
   return {
     label,

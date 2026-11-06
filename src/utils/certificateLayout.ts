@@ -31,6 +31,7 @@ export interface CertificateFieldLayout {
   weight: 'normal' | 'bold'
   fontStyle?: 'normal' | 'italic'
   textTransform?: 'uppercase' | 'none'
+  label?: string
   visible?: boolean
 }
 
@@ -54,7 +55,7 @@ export const certificateFieldLabels: Record<CertificateFieldKey, string> = {
   rut: 'RUT',
   introText: 'Leyenda curso',
   curso: 'Curso',
-  fechaInicio: 'Fecha inicio',
+  fechaInicio: 'Fecha de ejecución',
   fechaTermino: 'Fecha término',
   duracion: 'Duración',
   modalidad: 'Modalidad',
@@ -134,6 +135,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     align: 'left',
     color: '#1d2430',
     weight: 'normal',
+    label: 'Fecha de ejecución',
   },
   fechaTermino: {
     x: 197,
@@ -145,6 +147,8 @@ export const defaultCertificateLayout: CertificateLayout = {
     align: 'left',
     color: '#1d2430',
     weight: 'normal',
+    label: 'Fecha término',
+    visible: false,
   },
   duracion: {
     x: 478,

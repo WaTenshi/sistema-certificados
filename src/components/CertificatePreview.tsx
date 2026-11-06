@@ -38,7 +38,9 @@ function CertificateField({
     clientX: number
     clientY: number
   } | null>(null)
-  const detail = detailFields.has(field) ? certificateDetail(student, field as Parameters<typeof certificateDetail>[1]) : null
+  const detail = detailFields.has(field)
+    ? certificateDetail(student, field as Parameters<typeof certificateDetail>[1], layout.label)
+    : null
   const text = formatCertificateFieldText(certificateFieldText(field, student, code, texts), layout)
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {

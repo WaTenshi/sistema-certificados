@@ -333,7 +333,12 @@ export async function fillWordTemplate(
   }
   xml = injectAfterParagraphLabel(xml, ['Duración'], student.duracion, dataStyles.duracion)
   xml = injectAfterParagraphLabel(xml, ['Modalidad'], student.modalidad, dataStyles.modalidad)
-  xml = injectAfterParagraphLabel(xml, ['Fecha de Inicio'], student.fechaInicio, dataStyles.fechaInicio)
+  xml = injectAfterParagraphLabel(
+    xml,
+    ['Fecha de ejecución', 'Fecha ejecución', 'Fecha de Inicio'],
+    student.fechaInicio,
+    dataStyles.fechaInicio,
+  )
   xml = injectAfterParagraphLabel(xml, ['Fecha de término', 'Fecha de termino'], student.fechaTermino, dataStyles.fechaTermino)
   xml = injectInParagraphId(xml, '572397BE', student.rut, dataStyles.rut)
   xml = injectInParagraphId(xml, '0B813C2D', `${student.nombres} ${student.apellidos}`, dataStyles.nombre)

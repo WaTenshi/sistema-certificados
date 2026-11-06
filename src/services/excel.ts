@@ -21,6 +21,23 @@ function findColumn(headers: RawRow, names: string[], fallback: number): number 
   return index >= 0 ? index : fallback
 }
 
+function findMetadataValue(rows: RawRow[], labels: string[], fallback: unknown): string {
+  const normalizedLabels = labels.map(normalizeHeader)
+
+  for (const row of rows.slice(0, 20)) {
+    const labelIndex = row.findIndex((cell) => {
+      const normalizedCell = normalizeHeader(cell)
+      return normalizedLabels.some((label) => normalizedCell.includes(label))
+    })
+    if (labelIndex >= 0) {
+      const value = text(row[labelIndex + 1])
+      if (value) return value
+    }
+  }
+
+  return text(fallback)
+}
+
 function readWorkbook(file: File): Promise<XLSX.WorkBook> {
   return file.arrayBuffer().then((buffer) => XLSX.read(buffer, { type: 'array' }))
 }
@@ -65,6 +82,16 @@ export async function parsePngWorkbook(file: File): Promise<PngWorkbook> {
       }
     })
 
+    const curso = findMetadataValue(rows, ['nombre del curso', 'curso'], rows[2]?.[2])
+    const duracion = findMetadataValue(rows, ['duracion'], rows[3]?.[2])
+    const fechaEjecucion = findMetadataValue(
+      rows,
+      ['fecha de ejecucion', 'fecha ejecucion', 'fecha de inicio', 'fecha inicio'],
+      rows[5]?.[2],
+    )
+    const fechaTermino = findMetadataValue(rows, ['fecha de termino', 'fecha termino'], rows[6]?.[2])
+    const modalidad = findMetadataValue(rows, ['modalidad'], rows[7]?.[2])
+
     const students = rows
       .slice(firstStudentRow)
       .filter((row) => row?.[1] && row?.[2] && row?.[3])
@@ -78,11 +105,11 @@ export async function parsePngWorkbook(file: File): Promise<PngWorkbook> {
         escolaridad: text(row[6]),
         telefono: text(row[7]),
         correo: text(row[8]),
-        curso: text(rows[2]?.[2]),
-        duracion: text(rows[3]?.[2]),
-        fechaInicio: text(rows[5]?.[2]),
-        fechaTermino: text(rows[6]?.[2]),
-        modalidad: text(rows[7]?.[2]),
+        curso,
+        duracion,
+        fechaInicio: fechaEjecucion,
+        fechaTermino,
+        modalidad,
       }))
 
     if (students.length) {
@@ -115,7 +142,7 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
       if (label.includes('curso')) curso = value
       else if (label.includes('sence')) codigoSence = value
       else if (label.includes('duraci')) duracion = value
-      else if (label.includes('inicio')) fechaInicio = value
+      else if (label.includes('ejecuci') || label.includes('inicio')) fechaInicio = value
       else if (label.includes('termino') || label.includes('término')) fechaTermino = value
       else if (label.includes('modalidad')) modalidad = value
     }
