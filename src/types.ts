@@ -18,6 +18,7 @@ export interface Student {
   duracion: string
   fechaInicio: string
   fechaTermino: string
+  fechaEjecucion: string
   modalidad: string
 }
 

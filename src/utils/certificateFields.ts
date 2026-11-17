@@ -1,17 +1,19 @@
 import type { Student } from '../types'
 
-type CertificateDetailKey = 'fechaInicio' | 'fechaTermino' | 'duracion' | 'modalidad'
+type CertificateDetailKey = 'fechaInicio' | 'fechaTermino' | 'fechaEjecucion' | 'duracion' | 'modalidad'
 
 const detailLabels: Record<CertificateDetailKey, string> = {
-  fechaInicio: 'Fecha de ejecución',
+  fechaInicio: 'Fecha de inicio',
   fechaTermino: 'Fecha término',
+  fechaEjecucion: 'Fecha de ejecución',
   duracion: 'Duración',
   modalidad: 'Modalidad',
 }
 
 const detailLabelAliases: Record<CertificateDetailKey, string[]> = {
-  fechaInicio: ['Fecha inicio', 'Fecha de inicio', 'Fecha ejecución', 'Fecha de ejecución'],
+  fechaInicio: ['Fecha inicio', 'Fecha de inicio'],
   fechaTermino: ['Fecha término', 'Fecha de término', 'Fecha termino', 'Fecha de termino'],
+  fechaEjecucion: ['Fecha ejecución', 'Fecha de ejecución', 'Fecha ejecucion', 'Fecha de ejecucion'],
   duracion: ['Duración', 'Duracion'],
   modalidad: ['Modalidad'],
 }

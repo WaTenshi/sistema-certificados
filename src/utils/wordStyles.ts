@@ -5,6 +5,7 @@ export type WordDataFieldKey =
   | 'modalidad'
   | 'fechaInicio'
   | 'fechaTermino'
+  | 'fechaEjecucion'
   | 'rut'
   | 'nombre'
   | 'nota'
@@ -31,8 +32,9 @@ export const wordDataFieldLabels: Record<WordDataFieldKey, string> = {
   codigoSence: 'Código SENCE',
   duracion: 'Duración',
   modalidad: 'Modalidad',
-  fechaInicio: 'Fecha de ejecución',
+  fechaInicio: 'Fecha de inicio',
   fechaTermino: 'Fecha término',
+  fechaEjecucion: 'Fecha de ejecución',
   rut: 'RUT',
   nombre: 'Participante',
   nota: 'Nota',

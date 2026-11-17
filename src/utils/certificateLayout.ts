@@ -13,6 +13,7 @@ export type CertificateFieldKey =
   | 'curso'
   | 'fechaInicio'
   | 'fechaTermino'
+  | 'fechaEjecucion'
   | 'duracion'
   | 'modalidad'
   | 'senceLegend'
@@ -55,8 +56,9 @@ export const certificateFieldLabels: Record<CertificateFieldKey, string> = {
   rut: 'RUT',
   introText: 'Leyenda curso',
   curso: 'Curso',
-  fechaInicio: 'Fecha de ejecución',
+  fechaInicio: 'Fecha de inicio',
   fechaTermino: 'Fecha término',
+  fechaEjecucion: 'Fecha de ejecución',
   duracion: 'Duración',
   modalidad: 'Modalidad',
   senceLegend: 'Leyenda SENCE',
@@ -135,7 +137,7 @@ export const defaultCertificateLayout: CertificateLayout = {
     align: 'left',
     color: '#1d2430',
     weight: 'normal',
-    label: 'Fecha de ejecución',
+    label: 'Fecha de inicio',
   },
   fechaTermino: {
     x: 197,
@@ -148,6 +150,18 @@ export const defaultCertificateLayout: CertificateLayout = {
     color: '#1d2430',
     weight: 'normal',
     label: 'Fecha término',
+  },
+  fechaEjecucion: {
+    x: 197,
+    y: 480,
+    width: 245,
+    fontSize: 10,
+    fontFamily: 'Arial',
+    lineHeight: 1.2,
+    align: 'left',
+    color: '#1d2430',
+    weight: 'normal',
+    label: 'Fecha de ejecución',
     visible: false,
   },
   duracion: {

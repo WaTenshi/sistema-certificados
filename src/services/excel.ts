@@ -84,12 +84,12 @@ export async function parsePngWorkbook(file: File): Promise<PngWorkbook> {
 
     const curso = findMetadataValue(rows, ['nombre del curso', 'curso'], rows[2]?.[2])
     const duracion = findMetadataValue(rows, ['duracion'], rows[3]?.[2])
-    const fechaEjecucion = findMetadataValue(
-      rows,
-      ['fecha de ejecucion', 'fecha ejecucion', 'fecha de inicio', 'fecha inicio'],
-      rows[5]?.[2],
-    )
-    const fechaTermino = findMetadataValue(rows, ['fecha de termino', 'fecha termino'], rows[6]?.[2])
+    const fechaInicioEncontrada = findMetadataValue(rows, ['fecha de inicio', 'fecha inicio'], '')
+    const fechaTerminoEncontrada = findMetadataValue(rows, ['fecha de termino', 'fecha termino'], '')
+    const fechaEjecucion = findMetadataValue(rows, ['fecha de ejecucion', 'fecha ejecucion'], '')
+    const hayFechasEtiquetadas = Boolean(fechaInicioEncontrada || fechaTerminoEncontrada || fechaEjecucion)
+    const fechaInicio = fechaInicioEncontrada || (!hayFechasEtiquetadas ? text(rows[5]?.[2]) : '')
+    const fechaTermino = fechaTerminoEncontrada || (!hayFechasEtiquetadas ? text(rows[6]?.[2]) : '')
     const modalidad = findMetadataValue(rows, ['modalidad'], rows[7]?.[2])
 
     const students = rows
@@ -107,8 +107,9 @@ export async function parsePngWorkbook(file: File): Promise<PngWorkbook> {
         correo: text(row[8]),
         curso,
         duracion,
-        fechaInicio: fechaEjecucion,
+        fechaInicio,
         fechaTermino,
+        fechaEjecucion,
         modalidad,
       }))
 
@@ -134,6 +135,7 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
     let duracion = ''
     let fechaInicio = ''
     let fechaTermino = ''
+    let fechaEjecucion = ''
     let modalidad = ''
 
     for (let index = 0; index < Math.min(20, rows.length); index += 1) {
@@ -142,7 +144,8 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
       if (label.includes('curso')) curso = value
       else if (label.includes('sence')) codigoSence = value
       else if (label.includes('duraci')) duracion = value
-      else if (label.includes('ejecuci') || label.includes('inicio')) fechaInicio = value
+      else if (label.includes('ejecuci')) fechaEjecucion = value
+      else if (label.includes('inicio')) fechaInicio = value
       else if (label.includes('termino') || label.includes('término')) fechaTermino = value
       else if (label.includes('modalidad')) modalidad = value
     }
@@ -197,6 +200,7 @@ export async function parseWordWorkbook(file: File): Promise<Student[]> {
         duracion,
         fechaInicio,
         fechaTermino,
+        fechaEjecucion,
         modalidad,
       })
     })

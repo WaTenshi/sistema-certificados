@@ -94,7 +94,13 @@ function drawField(
   scaleX: number,
   scaleY: number,
 ) {
-  if (field === 'fechaInicio' || field === 'fechaTermino' || field === 'duracion' || field === 'modalidad') {
+  if (
+    field === 'fechaInicio' ||
+    field === 'fechaTermino' ||
+    field === 'fechaEjecucion' ||
+    field === 'duracion' ||
+    field === 'modalidad'
+  ) {
     drawDetail(context, field, student, layout, scaleX, scaleY)
     return
   }

@@ -13,7 +13,13 @@ import {
 } from '../utils/certificateLayout'
 import { certificateDetail } from '../utils/certificateFields'
 
-const detailFields = new Set<CertificateFieldKey>(['fechaInicio', 'fechaTermino', 'duracion', 'modalidad'])
+const detailFields = new Set<CertificateFieldKey>([
+  'fechaInicio',
+  'fechaTermino',
+  'fechaEjecucion',
+  'duracion',
+  'modalidad',
+])
 
 function CertificateField({
   field,

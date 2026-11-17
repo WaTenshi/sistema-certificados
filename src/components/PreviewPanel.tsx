@@ -75,7 +75,13 @@ function FittedPreview({
 
 const editableFields = Object.keys(certificateFieldLabels) as CertificateFieldKey[]
 const textEditableFields = new Set<CertificateFieldKey>(['introText', 'senceLegend'])
-const labelEditableFields = new Set<CertificateFieldKey>(['fechaInicio', 'fechaTermino', 'duracion', 'modalidad'])
+const labelEditableFields = new Set<CertificateFieldKey>([
+  'fechaInicio',
+  'fechaTermino',
+  'fechaEjecucion',
+  'duracion',
+  'modalidad',
+])
 
 function isTextField(field: CertificateFieldKey): field is CertificateTextFieldKey {
   return textEditableFields.has(field)
